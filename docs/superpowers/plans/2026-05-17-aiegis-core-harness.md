@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build the first tested AIegis package: trust-labeled content ingestion, HTML threat detection, policy decisions, audit records, and a CLI inspection entrypoint.
+**Goal:** Build the first tested AIegis package: trust-labeled content ingestion, HTML/email threat detection, policy decisions, audit records, and CLI inspection entrypoints.
 
 **Architecture:** Keep the first slice deliberately small: pure Python modules with deterministic behavior and no network calls. HTML ingestion produces a `GuardedContent` value; policy evaluation consumes content plus proposed actions; audit code serializes decisions for later MCP gateway integration.
 
@@ -133,3 +133,34 @@ Run: `mypy src`
 - [ ] **Step 3: Fix only verified defects**
 
 Any fix must be covered by a failing test first unless it is purely configuration or formatting.
+
+### Task 7: Email Ingestion Guard
+
+**Files:**
+- Create: `tests/test_email_guard.py`
+- Create: `src/aiegis/email_guard.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover plain body extraction, HTML part inspection through the existing HTML guard,
+attachment quarantine, Reply-To mismatch findings, prompt-injection phrase findings, and
+`aiegis inspect-email`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_email_guard.py tests/test_cli.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.email_guard'`.
+
+- [x] **Step 3: Implement minimal email guard and CLI command**
+
+Implemented `inspect_email()` with stdlib email parsing and added `inspect-email` to the CLI.
+
+- [x] **Step 4: Run tests and verify pass**
+
+Run: `pytest tests/test_email_guard.py tests/test_cli.py -q`
+
+Observed: `8 passed`.

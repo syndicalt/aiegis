@@ -6,7 +6,9 @@ from pathlib import Path
 from uuid import uuid4
 
 from aiegis.audit import AuditRecord
+from aiegis.email_guard import inspect_email
 from aiegis.html_guard import inspect_html
+from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
 
 _DEFAULT_POLICY = Policy(
@@ -20,15 +22,13 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "inspect-html":
-        html = _read_input(args.path)
-        content = inspect_html(html)
-        decision = evaluate_policy(
-            content,
-            ActionRequest(name=args.action, target=args.target),
-            _DEFAULT_POLICY,
-        )
-        record = AuditRecord(event_id=f"evt_{uuid4().hex}", content=content, decision=decision)
-        print(record.to_json())
+        content = inspect_html(_read_input(args.path))
+        _print_inspection(content, args.action, args.target)
+        return 0
+
+    if args.command == "inspect-email":
+        content = inspect_email(_read_input(args.path))
+        _print_inspection(content, args.action, args.target)
         return 0
 
     parser.print_help(sys.stderr)
@@ -44,7 +44,24 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect.add_argument("--action", default="summarize", help="Proposed agent action name.")
     inspect.add_argument("--target", default="local", help="Proposed action target.")
 
+    inspect_email_parser = subcommands.add_parser("inspect-email", help="Inspect untrusted email.")
+    inspect_email_parser.add_argument(
+        "path", nargs="?", help="Email file path. Reads stdin when omitted."
+    )
+    inspect_email_parser.add_argument("--action", default="summarize", help="Proposed action name.")
+    inspect_email_parser.add_argument("--target", default="local", help="Proposed action target.")
+
     return parser
+
+
+def _print_inspection(content: GuardedContent, action: str, target: str) -> None:
+    decision = evaluate_policy(
+        content,
+        ActionRequest(name=action, target=target),
+        _DEFAULT_POLICY,
+    )
+    record = AuditRecord(event_id=f"evt_{uuid4().hex}", content=content, decision=decision)
+    print(record.to_json())
 
 
 def _read_input(path: str | None) -> str:
