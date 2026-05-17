@@ -38,3 +38,23 @@ Inspect email from stdin:
 ```bash
 printf 'From: sender@example.test\nSubject: Hi\n\nBody' | aiegis inspect-email
 ```
+
+Use a named policy profile:
+
+```bash
+printf '<p>Send this</p>' | aiegis inspect-html \
+  --action send_email \
+  --target external \
+  --policy-file examples/policies.yaml \
+  --policy-profile review_only
+```
+
+Policy profile files are YAML:
+
+```yaml
+profiles:
+  review_only:
+    approval_required_actions:
+      - send_email
+    blocked_actions_on_prompt_injection: []
+```

@@ -164,3 +164,36 @@ Implemented `inspect_email()` with stdlib email parsing and added `inspect-email
 Run: `pytest tests/test_email_guard.py tests/test_cli.py -q`
 
 Observed: `8 passed`.
+
+### Task 8: Configurable Policy Profiles
+
+**Files:**
+- Create: `tests/test_policy_profiles.py`
+- Create: `src/aiegis/policy_profiles.py`
+- Create: `examples/policies.yaml`
+- Modify: `pyproject.toml`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover loading a named YAML profile, rejecting unknown profiles, rejecting non-string
+actions, rejecting unknown keys, and CLI selection with `--policy-file` and
+`--policy-profile`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_policy_profiles.py tests/test_cli.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.policy_profiles'`.
+
+- [x] **Step 3: Implement minimal policy profile loader and CLI flags**
+
+Implemented strict YAML loading with `PyYAML`, profile validation, and CLI policy selection.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_policy_profiles.py tests/test_cli.py -q`
+
+Observed: `10 passed`.

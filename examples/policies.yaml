@@ -1,0 +1,19 @@
+profiles:
+  default:
+    approval_required_actions:
+      - send_email
+      - post_web
+      - file_upload
+      - shell
+    blocked_actions_on_prompt_injection:
+      - send_email
+      - post_web
+      - file_upload
+      - shell
+  review_only:
+    approval_required_actions:
+      - send_email
+      - post_web
+      - file_upload
+      - shell
+    blocked_actions_on_prompt_injection: []

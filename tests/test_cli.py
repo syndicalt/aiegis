@@ -68,6 +68,42 @@ def test_inspect_email_reads_stdin_and_writes_json(capsys, monkeypatch) -> None:
     assert output["decision"]["status"] == "block"
 
 
+def test_inspect_html_uses_named_policy_profile(capsys, monkeypatch, tmp_path) -> None:
+    policy_path = tmp_path / "policies.yaml"
+    policy_path.write_text(
+        """
+profiles:
+  review_only:
+    approval_required_actions:
+      - send_email
+    blocked_actions_on_prompt_injection: []
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "inspect-html",
+            "--action",
+            "send_email",
+            "--target",
+            "external",
+            "--policy-file",
+            str(policy_path),
+            "--policy-profile",
+            "review_only",
+        ],
+    )
+    monkeypatch.setattr("sys.stdin", _TextInput("<p>Please send this.</p>"))
+
+    exit_code = main()
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["decision"]["status"] == "require_approval"
+
+
 def test_inspect_html_reads_file_path(capsys, monkeypatch, tmp_path) -> None:
     html_path = tmp_path / "input.html"
     html_path.write_text("<p>File body</p>", encoding="utf-8")
