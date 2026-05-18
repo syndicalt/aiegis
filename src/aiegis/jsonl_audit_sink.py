@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from aiegis.audit import AuditRecord
+from aiegis.audit_integrity import previous_event_hash, seal_audit_event
 from aiegis.tool_firewall import ToolCallDecision
 
 CONTENT_DECIDED_EVENT = "aiegis.content.decided"
@@ -80,8 +81,12 @@ class JsonlAuditSink:
             "policy_profile": policy_profile,
             "payload": payload,
         }
+        sealed_event = seal_audit_event(
+            event,
+            previous_event_hash=previous_event_hash(log_path),
+        )
         with log_path.open("a", encoding="utf-8") as audit_log:
-            audit_log.write(json.dumps(event, sort_keys=True, separators=(",", ":")) + "\n")
+            audit_log.write(json.dumps(sealed_event, sort_keys=True, separators=(",", ":")) + "\n")
 
 
 def _utc_now() -> str:

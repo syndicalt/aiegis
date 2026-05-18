@@ -84,9 +84,19 @@ parent directories when needed. Content audit logs omit raw text and quarantined
 segments, and tool-call audit logs redact sensitive argument values such as
 tokens, passwords, secrets, credentials, and API keys.
 
+Local JSONL audit events are sealed with a hash chain. Each event stores the
+previous event hash and its own event hash, making edits, deletion, or reordering
+detectable by verification.
+
 Use `--audit-include-raw` only for local debugging sessions that explicitly need
 the full inspected payload. It stores raw untrusted content, quarantined
 segments, links, and unredacted tool arguments in the local JSONL audit log.
+
+Verify a local audit log:
+
+```bash
+aiegis verify-audit-log .aiegis/audit.jsonl
+```
 
 Eventloom audit payloads store content hashes, finding metadata, counts, policy
 profile names, and decisions. They do not store raw inspected content or

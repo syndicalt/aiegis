@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 from uuid import uuid4
 
 from aiegis.audit import AuditRecord
+from aiegis.audit_integrity import verify_audit_log
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
@@ -39,6 +41,11 @@ def main() -> int:
         run_stdio_server(config=_mcp_config_from_args(args))
         return 0
 
+    if args.command == "verify-audit-log":
+        verification = verify_audit_log(Path(args.path))
+        print(json.dumps(verification.to_dict(), sort_keys=True))
+        return 0 if verification.valid else 1
+
     parser.print_help(sys.stderr)
     return 2
 
@@ -65,6 +72,12 @@ def _build_parser() -> argparse.ArgumentParser:
         "mcp-stdio", help="Run the AIegis MCP server over stdio."
     )
     _add_policy_arguments(mcp_stdio_parser)
+
+    verify_audit_log_parser = subcommands.add_parser(
+        "verify-audit-log",
+        help="Verify a local JSONL audit log hash chain.",
+    )
+    verify_audit_log_parser.add_argument("path", help="JSONL audit log path.")
 
     return parser
 

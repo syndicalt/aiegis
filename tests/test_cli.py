@@ -1,6 +1,8 @@
 import json
 
 from aiegis.cli import main
+from aiegis.jsonl_audit_sink import JsonlAuditSink
+from aiegis.tool_firewall import ToolCallPolicy, ToolCallRequest, evaluate_tool_call
 
 USAGE_ERROR = 2
 
@@ -399,6 +401,57 @@ def test_mcp_stdio_command_passes_raw_audit_opt_in(capsys, monkeypatch, tmp_path
     assert calls[0].audit_log == audit_path
     assert calls[0].audit_include_raw is True
     assert capsys.readouterr().out == ""
+
+
+def test_verify_audit_log_command_returns_valid_summary(capsys, monkeypatch, tmp_path) -> None:
+    audit_path = tmp_path / "audit.jsonl"
+    decision = evaluate_tool_call(
+        ToolCallRequest(name="shell", target="local", arguments={"command": "ls"}),
+        policy=ToolCallPolicy(),
+    )
+    JsonlAuditSink(clock=lambda: "2026-05-18T00:00:09+00:00").append_tool_call_decision(
+        decision,
+        log_path=audit_path,
+        policy_profile="default",
+    )
+    monkeypatch.setattr("sys.argv", ["aiegis", "verify-audit-log", str(audit_path)])
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert json.loads(capsys.readouterr().out) == {
+        "valid": True,
+        "checked_records": 1,
+        "errors": [],
+    }
+
+
+def test_verify_audit_log_command_returns_error_for_tampered_log(
+    capsys, monkeypatch, tmp_path
+) -> None:
+    audit_path = tmp_path / "audit.jsonl"
+    decision = evaluate_tool_call(
+        ToolCallRequest(name="shell", target="local", arguments={"command": "ls"}),
+        policy=ToolCallPolicy(),
+    )
+    JsonlAuditSink(clock=lambda: "2026-05-18T00:00:10+00:00").append_tool_call_decision(
+        decision,
+        log_path=audit_path,
+        policy_profile="default",
+    )
+    event = json.loads(audit_path.read_text(encoding="utf-8"))
+    event["payload"]["tool"]["arguments"]["command"] = "cat /etc/passwd"
+    audit_path.write_text(json.dumps(event, sort_keys=True) + "\n", encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["aiegis", "verify-audit-log", str(audit_path)])
+
+    exit_code = main()
+
+    assert exit_code == 1
+    assert json.loads(capsys.readouterr().out) == {
+        "valid": False,
+        "checked_records": 1,
+        "errors": ["line 1: event_hash does not match event contents"],
+    }
 
 
 class _TextInput:

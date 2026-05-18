@@ -263,6 +263,74 @@ Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
 
 Observed: `15 passed`.
 
+### Task 16: Explicit Raw JSONL Audit Opt-In
+
+**Files:**
+- Modify: `tests/test_jsonl_audit_sink.py`
+- Modify: `tests/test_cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/jsonl_audit_sink.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover `JsonlAuditSink(include_raw=True)`, CLI `--audit-include-raw`, MCP
+`audit_include_raw` configuration, and raw content/tool argument capture only
+when explicitly enabled.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_jsonl_audit_sink.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: failed because `include_raw`, `--audit-include-raw`, and
+`McpServerConfig.audit_include_raw` were not implemented.
+
+- [x] **Step 3: Implement raw audit opt-in**
+
+Added the `include_raw` sink option, CLI flag, MCP config field, and README
+warning. Minimized/redacted audit payloads remain the default.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_jsonl_audit_sink.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: `33 passed`.
+
+### Task 17: Tamper-Evident JSONL Audit Logs
+
+**Files:**
+- Create: `src/aiegis/audit_integrity.py`
+- Modify: `tests/test_jsonl_audit_sink.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/jsonl_audit_sink.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover first-event integrity fields, chained second events, verification of
+valid audit logs, tamper detection, and CLI `verify-audit-log` behavior.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_jsonl_audit_sink.py tests/test_cli.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.audit_integrity'`.
+
+- [x] **Step 3: Implement audit integrity**
+
+Added reusable audit sealing and verification helpers, wired `JsonlAuditSink` to
+seal every event with `previous_event_hash` and `event_hash`, and added
+`aiegis verify-audit-log`.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_jsonl_audit_sink.py tests/test_cli.py -q`
+
+Observed: `23 passed`.
+
 ### Task 14: Local JSONL Audit Sink
 
 **Files:**

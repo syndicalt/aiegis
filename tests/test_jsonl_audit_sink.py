@@ -1,11 +1,16 @@
 import json
 from pathlib import Path
 
+import pytest
+
 from aiegis.audit import AuditRecord
+from aiegis.audit_integrity import verify_audit_log
 from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.models import GuardedContent, SourceType, TrustLevel
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
 from aiegis.tool_firewall import ToolCallPolicy, ToolCallRequest, evaluate_tool_call
+
+CHAINED_RECORD_COUNT = 2
 
 
 def test_jsonl_sink_appends_content_audit_record(tmp_path: Path) -> None:
@@ -28,7 +33,10 @@ def test_jsonl_sink_appends_content_audit_record(tmp_path: Path) -> None:
 
     sink.append_content_record(record, log_path=log_path, policy_profile="default")
 
-    assert json.loads(log_path.read_text(encoding="utf-8")) == {
+    event = json.loads(log_path.read_text(encoding="utf-8"))
+    assert event["previous_event_hash"] is None
+    assert event["event_hash"].startswith("sha256:")
+    assert _without_integrity_fields(event) == {
         "schema_version": 1,
         "event_type": "aiegis.content.decided",
         "timestamp": "2026-05-18T00:00:00+00:00",
@@ -136,7 +144,10 @@ def test_jsonl_sink_appends_tool_call_decision(tmp_path: Path) -> None:
 
     sink.append_tool_call_decision(decision, log_path=log_path, policy_profile="strict")
 
-    assert json.loads(log_path.read_text(encoding="utf-8")) == {
+    event = json.loads(log_path.read_text(encoding="utf-8"))
+    assert event["previous_event_hash"] is None
+    assert event["event_hash"].startswith("sha256:")
+    assert _without_integrity_fields(event) == {
         "schema_version": 1,
         "event_type": "aiegis.tool_call.decided",
         "timestamp": "2026-05-18T00:00:01+00:00",
@@ -189,3 +200,94 @@ def test_jsonl_sink_can_include_raw_tool_arguments_when_explicitly_enabled(
         "token": "secret-token",
         "body": "safe body",
     }
+
+
+def test_jsonl_sink_chains_events_and_verifier_accepts_log(tmp_path: Path) -> None:
+    timestamps = iter(("2026-05-18T00:00:06+00:00", "2026-05-18T00:00:07+00:00"))
+    sink = JsonlAuditSink(clock=lambda: next(timestamps))
+    log_path = tmp_path / "audit.jsonl"
+    content = GuardedContent(
+        text="Visible body",
+        source_type=SourceType.HTML,
+        trust_level=TrustLevel.UNTRUSTED,
+    )
+    record = AuditRecord(
+        event_id="evt_chain",
+        content=content,
+        decision=evaluate_policy(
+            content,
+            ActionRequest(name="summarize", target="local"),
+            Policy(),
+        ),
+    )
+    decision = evaluate_tool_call(
+        ToolCallRequest(name="shell", target="local", arguments={"command": "ls"}),
+        policy=ToolCallPolicy(),
+    )
+
+    sink.append_content_record(record, log_path=log_path, policy_profile="default")
+    sink.append_tool_call_decision(decision, log_path=log_path, policy_profile="default")
+
+    first, second = [
+        json.loads(line) for line in log_path.read_text(encoding="utf-8").splitlines()
+    ]
+    assert first["previous_event_hash"] is None
+    assert second["previous_event_hash"] == first["event_hash"]
+    verification = verify_audit_log(log_path)
+    assert verification.valid is True
+    assert verification.checked_records == CHAINED_RECORD_COUNT
+    assert verification.errors == ()
+
+
+def test_verify_audit_log_rejects_tampered_payload(tmp_path: Path) -> None:
+    sink = JsonlAuditSink(clock=lambda: "2026-05-18T00:00:08+00:00")
+    log_path = tmp_path / "audit.jsonl"
+    decision = evaluate_tool_call(
+        ToolCallRequest(name="shell", target="local", arguments={"command": "ls"}),
+        policy=ToolCallPolicy(),
+    )
+    sink.append_tool_call_decision(decision, log_path=log_path, policy_profile="default")
+    event = json.loads(log_path.read_text(encoding="utf-8"))
+    event["payload"]["tool"]["arguments"]["command"] = "cat /etc/passwd"
+    log_path.write_text(json.dumps(event, sort_keys=True) + "\n", encoding="utf-8")
+
+    verification = verify_audit_log(log_path)
+
+    assert verification.valid is False
+    assert verification.checked_records == 1
+    assert verification.errors == ("line 1: event_hash does not match event contents",)
+
+
+def test_verify_audit_log_reports_invalid_json(tmp_path: Path) -> None:
+    log_path = tmp_path / "audit.jsonl"
+    log_path.write_text("{not-json}\n", encoding="utf-8")
+
+    verification = verify_audit_log(log_path)
+
+    assert verification.valid is False
+    assert verification.checked_records == 1
+    assert verification.errors == ("line 1: invalid JSON",)
+
+
+def test_jsonl_sink_refuses_to_append_to_unsealed_existing_log(tmp_path: Path) -> None:
+    sink = JsonlAuditSink(clock=lambda: "2026-05-18T00:00:11+00:00")
+    log_path = tmp_path / "audit.jsonl"
+    log_path.write_text(json.dumps({"schema_version": 1}) + "\n", encoding="utf-8")
+    decision = evaluate_tool_call(
+        ToolCallRequest(name="shell", target="local", arguments={"command": "ls"}),
+        policy=ToolCallPolicy(),
+    )
+
+    with pytest.raises(ValueError, match="missing event_hash at line 1"):
+        sink.append_tool_call_decision(
+            decision,
+            log_path=log_path,
+            policy_profile="default",
+        )
+
+
+def _without_integrity_fields(event: dict[str, object]) -> dict[str, object]:
+    payload = dict(event)
+    payload.pop("previous_event_hash")
+    payload.pop("event_hash")
+    return payload
