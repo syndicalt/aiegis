@@ -12,7 +12,7 @@ from aiegis.html_guard import inspect_html
 from aiegis.mcp_server import McpServerConfig, run_stdio_server
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
-from aiegis.policy_profiles import load_policy_profile
+from aiegis.policy_profiles import LoadedPolicyProfile, load_policy_profile
 
 _DEFAULT_POLICY = Policy(
     approval_required_actions=("send_email", "post_web", "file_upload", "shell"),
@@ -112,11 +112,26 @@ def _print_inspection(
 
 
 def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
+    loaded_profile = _loaded_profile_from_args(args)
     return McpServerConfig(
-        policy=_policy_from_args(args),
+        policy=loaded_profile.content_policy,
+        tool_call_policy=loaded_profile.tool_call_policy,
         policy_profile=args.policy_profile,
         eventloom_log=Path(args.eventloom_log) if args.eventloom_log is not None else None,
         eventloom_thread=args.eventloom_thread,
+    )
+
+
+def _loaded_profile_from_args(args: argparse.Namespace) -> LoadedPolicyProfile:
+    if args.policy_file is None:
+        return LoadedPolicyProfile(
+            content_policy=_DEFAULT_POLICY,
+            tool_call_policy=McpServerConfig().tool_call_policy,
+        )
+    return load_policy_profile(
+        Path(args.policy_file),
+        args.policy_profile,
+        include_tool_call_policy=True,
     )
 
 

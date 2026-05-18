@@ -263,6 +263,42 @@ Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
 
 Observed: `15 passed`.
 
+### Task 13: Configurable Tool Firewall Profiles
+
+**Files:**
+- Modify: `tests/test_policy_profiles.py`
+- Modify: `src/aiegis/policy_profiles.py`
+- Modify: `tests/test_cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `examples/policies.yaml`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover loading `approval_required_tools`, `blocked_tools`, and
+`sensitive_argument_keys` from YAML profiles, rejecting non-string tool lists,
+passing configured tool policy into `mcp-stdio`, and MCP evaluation under a
+custom firewall policy.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_policy_profiles.py -q`
+
+Observed: failed with `ImportError: cannot import name 'LoadedPolicyProfile'`.
+
+- [x] **Step 3: Implement profile loading and MCP wiring**
+
+Implemented `LoadedPolicyProfile`, added strict validation for tool firewall
+profile keys, kept existing content-policy callers backward-compatible, and
+wired `mcp-stdio` to load both content and tool policies.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_server.py tests/test_cli.py tests/test_policy_profiles.py -q`
+
+Observed: `26 passed`.
+
 ### Task 11: MCP Runtime Policy And Audit Configuration
 
 **Files:**

@@ -4,6 +4,7 @@ from pathlib import Path
 
 from aiegis.mcp_server import McpServerConfig, handle_jsonrpc_message, run_stdio_server
 from aiegis.policy import Policy
+from aiegis.tool_firewall import ToolCallPolicy
 
 
 def test_initialize_advertises_tool_capability() -> None:
@@ -224,6 +225,35 @@ def test_tools_call_evaluates_proposed_tool_invocation() -> None:
             "Tool call targets an external destination while carrying sensitive argument 'token'."
         ],
     }
+
+
+def test_tools_call_evaluates_proposed_tool_with_configured_firewall() -> None:
+    response = handle_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call-tool-policy-configured",
+            "method": "tools/call",
+            "params": {
+                "name": "aiegis.evaluate_tool_call",
+                "arguments": {
+                    "tool_name": "internal.sync",
+                    "target": "local",
+                    "arguments": {"query": "safe"},
+                },
+            },
+        },
+        config=McpServerConfig(
+            tool_call_policy=ToolCallPolicy(
+                approval_required_tools=(),
+                blocked_tools=("internal.sync",),
+                sensitive_argument_keys=("token",),
+            )
+        ),
+    )
+
+    decision = response["result"]["structuredContent"]
+    assert decision["status"] == "block"
+    assert decision["reasons"] == ["Tool 'internal.sync' is blocked by policy."]
 
 
 def test_unknown_tool_returns_jsonrpc_error() -> None:

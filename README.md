@@ -58,6 +58,15 @@ profiles:
     approval_required_actions:
       - send_email
     blocked_actions_on_prompt_injection: []
+    approval_required_tools:
+      - send_email
+      - file_upload
+    blocked_tools:
+      - shell
+      - filesystem.delete
+    sensitive_argument_keys:
+      - api_key
+      - token
 ```
 
 Append metadata-only audit events to a Zaxy Eventloom log:

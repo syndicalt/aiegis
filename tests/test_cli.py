@@ -77,6 +77,12 @@ profiles:
     approval_required_actions:
       - send_email
     blocked_actions_on_prompt_injection: []
+    approval_required_tools:
+      - http.post
+    blocked_tools:
+      - shell
+    sensitive_argument_keys:
+      - bearer_token
 """,
         encoding="utf-8",
     )
@@ -198,6 +204,12 @@ profiles:
     approval_required_actions:
       - send_email
     blocked_actions_on_prompt_injection: []
+    approval_required_tools:
+      - http.post
+    blocked_tools:
+      - shell
+    sensitive_argument_keys:
+      - bearer_token
 """,
         encoding="utf-8",
     )
@@ -231,6 +243,9 @@ profiles:
     config = calls[0]
     assert config.policy.approval_required_actions == ("send_email",)
     assert config.policy.blocked_actions_on_prompt_injection == ()
+    assert config.tool_call_policy.approval_required_tools == ("http.post",)
+    assert config.tool_call_policy.blocked_tools == ("shell",)
+    assert config.tool_call_policy.sensitive_argument_keys == ("bearer_token",)
     assert config.policy_profile == "review_only"
     assert config.eventloom_log == eventloom_path
     assert config.eventloom_thread == "aiegis-security"

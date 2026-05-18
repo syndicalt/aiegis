@@ -10,6 +10,21 @@ profiles:
       - post_web
       - file_upload
       - shell
+    approval_required_tools:
+      - send_email
+      - post_web
+      - file_upload
+      - shell
+    blocked_tools:
+      - filesystem.delete
+      - memory.write_sensitive
+    sensitive_argument_keys:
+      - api_key
+      - authorization
+      - credential
+      - password
+      - secret
+      - token
   review_only:
     approval_required_actions:
       - send_email
@@ -17,3 +32,16 @@ profiles:
       - file_upload
       - shell
     blocked_actions_on_prompt_injection: []
+    approval_required_tools:
+      - send_email
+      - post_web
+      - file_upload
+      - shell
+    blocked_tools: []
+    sensitive_argument_keys:
+      - api_key
+      - authorization
+      - credential
+      - password
+      - secret
+      - token
