@@ -1,0 +1,191 @@
+{
+  "captured_at": "2026-05-18",
+  "command": "python benchmarks/run.py --json",
+  "environment": {
+    "cpu": "12th Gen Intel(R) Core(TM) i7-12700H",
+    "logical_cpus": 20,
+    "os": "Linux 6.17.0-23-generic x86_64",
+    "python": "Python 3.13.13"
+  },
+  "notes": [
+    "Run from the local AIegis benchmark suite with fixed corpus files.",
+    "CLI timings include Python subprocess startup.",
+    "No competitor comparison is implied."
+  ],
+  "result": {
+    "benchmarks": [
+      {
+        "iterations": 100,
+        "max_ms": 2.146284,
+        "median_ms": 0.700772,
+        "min_ms": 0.657041,
+        "name": "inspect_html_small",
+        "ops_per_sec": 1426.9976540158568,
+        "p95_ms": 1.219171,
+        "surface": "core_guard"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 2.073822,
+        "median_ms": 1.378851,
+        "min_ms": 1.301776,
+        "name": "inspect_html_large_hidden_content",
+        "ops_per_sec": 725.241523558383,
+        "p95_ms": 1.689278,
+        "surface": "core_guard"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 3.421488,
+        "median_ms": 2.8312,
+        "min_ms": 2.642859,
+        "name": "inspect_email_multipart",
+        "ops_per_sec": 353.20712065555244,
+        "p95_ms": 3.283137,
+        "surface": "core_guard"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.036909,
+        "median_ms": 0.013669500000000001,
+        "min_ms": 0.01327,
+        "name": "inspect_memory_poisoning",
+        "ops_per_sec": 73155.56530963093,
+        "p95_ms": 0.018374,
+        "surface": "core_guard"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.041878,
+        "median_ms": 0.0090745,
+        "min_ms": 0.008254,
+        "name": "inspect_document_text",
+        "ops_per_sec": 110198.9090308006,
+        "p95_ms": 0.00987,
+        "surface": "core_guard"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.030374,
+        "median_ms": 0.012379999999999999,
+        "min_ms": 0.01166,
+        "name": "inspect_output_secret",
+        "ops_per_sec": 80775.44426494346,
+        "p95_ms": 0.013117,
+        "surface": "core_guard"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.008865,
+        "median_ms": 0.0014425,
+        "min_ms": 0.001371,
+        "name": "evaluate_policy_prompt_block",
+        "ops_per_sec": 693240.9012131715,
+        "p95_ms": 0.00162,
+        "surface": "boundary_decision"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.023469,
+        "median_ms": 0.0034535,
+        "min_ms": 0.003206,
+        "name": "evaluate_tool_call_sensitive_external",
+        "ops_per_sec": 289561.3146083683,
+        "p95_ms": 0.004156,
+        "surface": "boundary_decision"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.037684,
+        "median_ms": 0.0095385,
+        "min_ms": 0.008762,
+        "name": "mcp_proxy_allowed_tool_call",
+        "ops_per_sec": 104838.28694239137,
+        "p95_ms": 0.010826,
+        "surface": "boundary_decision"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.038007,
+        "median_ms": 0.008528,
+        "min_ms": 0.007889,
+        "name": "mcp_proxy_blocked_tool_call",
+        "ops_per_sec": 117260.7879924953,
+        "p95_ms": 0.00991,
+        "surface": "boundary_decision"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.055518,
+        "median_ms": 0.025976,
+        "min_ms": 0.02435,
+        "name": "mcp_proxy_blocked_backend_text_response",
+        "ops_per_sec": 38497.0742223591,
+        "p95_ms": 0.029918,
+        "surface": "boundary_decision"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.789602,
+        "median_ms": 0.1097545,
+        "min_ms": 0.104122,
+        "name": "jsonl_audit_append_content_record",
+        "ops_per_sec": 9111.243730325408,
+        "p95_ms": 0.140289,
+        "surface": "audit_overhead"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 0.130622,
+        "median_ms": 0.08198,
+        "min_ms": 0.078867,
+        "name": "jsonl_audit_append_tool_decision",
+        "ops_per_sec": 12198.09709685289,
+        "p95_ms": 0.09211,
+        "surface": "audit_overhead"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 100.181508,
+        "median_ms": 64.210657,
+        "min_ms": 60.234603,
+        "name": "verify_audit_log_100_events",
+        "ops_per_sec": 15.573738795415222,
+        "p95_ms": 68.885846,
+        "surface": "audit_overhead"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 206.791451,
+        "median_ms": 177.567235,
+        "min_ms": 154.422394,
+        "name": "cli_inspect_html",
+        "ops_per_sec": 5.631669603910879,
+        "p95_ms": 190.749424,
+        "surface": "cli_smoke"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 196.421101,
+        "median_ms": 172.5734045,
+        "min_ms": 162.146985,
+        "name": "cli_inspect_email",
+        "ops_per_sec": 5.794635638656592,
+        "p95_ms": 185.393605,
+        "surface": "cli_smoke"
+      },
+      {
+        "iterations": 100,
+        "max_ms": 185.884582,
+        "median_ms": 164.56370349999997,
+        "min_ms": 148.075796,
+        "name": "cli_inspect_output",
+        "ops_per_sec": 6.076674131243043,
+        "p95_ms": 174.604663,
+        "surface": "cli_smoke"
+      }
+    ],
+    "iterations": 100,
+    "schema_version": 1
+  }
+}

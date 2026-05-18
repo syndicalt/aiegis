@@ -29,6 +29,19 @@ ruff check .
 mypy src
 ```
 
+## Benchmarks
+
+AIegis includes a local benchmark runner for guard throughput, boundary decision
+latency, audit overhead, and CLI smoke timing:
+
+```bash
+python benchmarks/run.py --json
+```
+
+Use `--iterations N` to control sample count. The runner uses fixed corpus files
+under `benchmarks/corpus/` and reports min, median, p95, max, and ops/sec for
+each benchmark. Benchmarks are reporting-only and are not a CI regression gate.
+
 ## CLI
 
 Inspect HTML from stdin:
