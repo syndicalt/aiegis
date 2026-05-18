@@ -99,6 +99,43 @@ def test_inspect_output_blocks_and_redacts_secret_like_text(capsys, monkeypatch)
     assert "sk-test-1234567890abcdef" not in repr(output)
 
 
+def test_inspect_output_uses_named_policy_profile(capsys, monkeypatch, tmp_path) -> None:
+    policy_path = tmp_path / "policies.yaml"
+    policy_path.write_text(
+        """
+profiles:
+  github_only:
+    approval_required_actions: []
+    blocked_actions_on_prompt_injection: []
+    approval_required_tools: []
+    blocked_tools: []
+    sensitive_argument_keys: []
+    blocked_egress_patterns:
+      - github_token
+""",
+        encoding="utf-8",
+    )
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "inspect-output",
+            "--policy-file",
+            str(policy_path),
+            "--policy-profile",
+            "github_only",
+        ],
+    )
+    monkeypatch.setattr("sys.stdin", _TextInput("Use api_key = sk-test-1234567890abcdef"))
+
+    exit_code = main()
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "allow"
+    assert output["redacted_text"] == "Use api_key = sk-test-1234567890abcdef"
+
+
 def test_inspect_html_uses_named_policy_profile(capsys, monkeypatch, tmp_path) -> None:
     policy_path = tmp_path / "policies.yaml"
     policy_path.write_text(
@@ -114,6 +151,8 @@ profiles:
       - shell
     sensitive_argument_keys:
       - bearer_token
+    blocked_egress_patterns:
+      - github_token
 """,
         encoding="utf-8",
     )
@@ -334,6 +373,8 @@ profiles:
       - shell
     sensitive_argument_keys:
       - bearer_token
+    blocked_egress_patterns:
+      - github_token
 """,
         encoding="utf-8",
     )
@@ -370,6 +411,7 @@ profiles:
     assert config.tool_call_policy.approval_required_tools == ("http.post",)
     assert config.tool_call_policy.blocked_tools == ("shell",)
     assert config.tool_call_policy.sensitive_argument_keys == ("bearer_token",)
+    assert config.egress_policy.blocked_patterns == ("github_token",)
     assert config.policy_profile == "review_only"
     assert config.audit_log is None
     assert config.eventloom_log == eventloom_path

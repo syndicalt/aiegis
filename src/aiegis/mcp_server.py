@@ -8,7 +8,7 @@ from typing import Any, Protocol, TextIO
 from uuid import uuid4
 
 from aiegis.audit import AuditRecord
-from aiegis.egress_guard import inspect_output
+from aiegis.egress_guard import EgressPolicy, inspect_output
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
@@ -94,6 +94,7 @@ class JsonlAuditSinkProtocol(Protocol):
 class McpServerConfig:
     policy: Policy = _DEFAULT_POLICY
     tool_call_policy: ToolCallPolicy = ToolCallPolicy()
+    egress_policy: EgressPolicy = EgressPolicy()
     policy_profile: str = "default"
     audit_log: Path | None = None
     audit_include_raw: bool = False
@@ -210,7 +211,7 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
     if name == "aiegis.evaluate_tool_call":
         return _evaluate_tool_call(arguments, config=config)
     if name == "aiegis.inspect_output":
-        return _inspect_output(arguments)
+        return _inspect_output(arguments, config=config)
 
     content = arguments.get("content")
     if not isinstance(content, str):
@@ -288,12 +289,16 @@ def _evaluate_tool_call(
     }
 
 
-def _inspect_output(arguments: dict[object, object]) -> dict[str, object]:
+def _inspect_output(
+    arguments: dict[object, object],
+    *,
+    config: McpServerConfig,
+) -> dict[str, object]:
     content = arguments.get("content")
     if not isinstance(content, str):
         raise ValueError("Tool argument 'content' must be a string.")
 
-    inspection = inspect_output(content)
+    inspection = inspect_output(content, policy=config.egress_policy)
     inspection_dict = inspection.to_dict()
     return {
         "content": [{"type": "text", "text": json.dumps(inspection_dict, sort_keys=True)}],

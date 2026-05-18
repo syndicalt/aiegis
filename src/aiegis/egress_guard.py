@@ -27,6 +27,16 @@ _SECRET_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
         ),
     ),
 )
+DEFAULT_BLOCKED_EGRESS_PATTERNS = tuple(pattern_name for pattern_name, _ in _SECRET_PATTERNS)
+KNOWN_EGRESS_PATTERNS = frozenset(DEFAULT_BLOCKED_EGRESS_PATTERNS)
+
+
+@dataclass(frozen=True, slots=True)
+class EgressPolicy:
+    blocked_patterns: tuple[str, ...] = DEFAULT_BLOCKED_EGRESS_PATTERNS
+
+
+DEFAULT_EGRESS_POLICY = EgressPolicy()
 
 
 @dataclass(frozen=True, slots=True)
@@ -45,10 +55,16 @@ class OutputInspection:
         }
 
 
-def inspect_output(text: str) -> OutputInspection:
+def inspect_output(
+    text: str,
+    *,
+    policy: EgressPolicy = DEFAULT_EGRESS_POLICY,
+) -> OutputInspection:
     redacted_text = text
     matched_patterns: list[str] = []
     for pattern_name, pattern in _SECRET_PATTERNS:
+        if pattern_name not in policy.blocked_patterns:
+            continue
         redacted_text, replacements = _redact_pattern(
             redacted_text,
             pattern_name=pattern_name,

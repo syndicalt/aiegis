@@ -6,6 +6,7 @@ from typing import Any, Literal, overload
 
 import yaml
 
+from aiegis.egress_guard import KNOWN_EGRESS_PATTERNS, EgressPolicy
 from aiegis.policy import Policy
 from aiegis.tool_firewall import ToolCallPolicy
 
@@ -15,6 +16,7 @@ _ALLOWED_POLICY_KEYS = {
     "approval_required_tools",
     "blocked_tools",
     "sensitive_argument_keys",
+    "blocked_egress_patterns",
 }
 
 
@@ -26,6 +28,7 @@ class PolicyProfileError(ValueError):
 class LoadedPolicyProfile:
     content_policy: Policy
     tool_call_policy: ToolCallPolicy
+    egress_policy: EgressPolicy = EgressPolicy()
 
 
 @overload
@@ -92,6 +95,12 @@ def load_policy_profile(
                 f"profiles.{profile_name}.sensitive_argument_keys",
             ),
         ),
+        egress_policy=EgressPolicy(
+            blocked_patterns=_egress_pattern_tuple(
+                profile.get("blocked_egress_patterns", None),
+                f"profiles.{profile_name}.blocked_egress_patterns",
+            )
+        ),
     )
 
 
@@ -112,3 +121,13 @@ def _string_tuple(value: Any, label: str) -> tuple[str, ...]:
     if not all(isinstance(item, str) for item in value):
         raise PolicyProfileError(f"{label} must contain only strings")
     return tuple(value)
+
+
+def _egress_pattern_tuple(value: Any, label: str) -> tuple[str, ...]:
+    patterns = _string_tuple(value, label)
+    if value is None:
+        return EgressPolicy().blocked_patterns
+    for pattern in patterns:
+        if pattern not in KNOWN_EGRESS_PATTERNS:
+            raise PolicyProfileError(f"{label} contains unknown pattern '{pattern}'")
+    return patterns

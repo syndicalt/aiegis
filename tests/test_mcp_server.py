@@ -2,6 +2,7 @@ import json
 from io import StringIO
 from pathlib import Path
 
+from aiegis.egress_guard import EgressPolicy
 from aiegis.mcp_server import McpServerConfig, handle_jsonrpc_message, run_stdio_server
 from aiegis.policy import Policy
 from aiegis.tool_firewall import ToolCallPolicy
@@ -313,6 +314,27 @@ def test_tools_call_inspect_output_blocks_and_redacts_secret_like_text() -> None
     assert inspection["status"] == "block"
     assert inspection["redacted_text"] == "Use api_key = [REDACTED]"
     assert "sk-test-1234567890abcdef" not in repr(inspection)
+
+
+def test_tools_call_inspect_output_uses_configured_egress_policy() -> None:
+    response = handle_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call-output-policy",
+            "method": "tools/call",
+            "params": {
+                "name": "aiegis.inspect_output",
+                "arguments": {"content": "Use api_key = sk-test-1234567890abcdef"},
+            },
+        },
+        config=McpServerConfig(egress_policy=EgressPolicy(blocked_patterns=("github_token",))),
+    )
+
+    result = response["result"]
+    inspection = result["structuredContent"]
+    assert result["isError"] is False
+    assert inspection["status"] == "allow"
+    assert inspection["redacted_text"] == "Use api_key = sk-test-1234567890abcdef"
 
 
 def test_tools_call_evaluates_proposed_tool_with_configured_firewall() -> None:

@@ -25,6 +25,12 @@ profiles:
       - password
       - secret
       - token
+    blocked_egress_patterns:
+      - private_key_block
+      - github_token
+      - aws_access_key_id
+      - slack_token
+      - api_key_assignment
   review_only:
     approval_required_actions:
       - send_email
@@ -45,3 +51,9 @@ profiles:
       - password
       - secret
       - token
+    blocked_egress_patterns:
+      - private_key_block
+      - github_token
+      - aws_access_key_id
+      - slack_token
+      - api_key_assignment

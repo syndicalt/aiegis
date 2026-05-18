@@ -2,6 +2,7 @@ from pathlib import Path
 
 import pytest
 
+from aiegis.egress_guard import EgressPolicy
 from aiegis.policy import Policy
 from aiegis.policy_profiles import (
     LoadedPolicyProfile,
@@ -72,6 +73,31 @@ profiles:
     )
 
 
+def test_load_policy_profile_reads_egress_settings(tmp_path: Path) -> None:
+    config_path = tmp_path / "policies.yaml"
+    config_path.write_text(
+        """
+profiles:
+  review_output:
+    approval_required_actions: []
+    blocked_actions_on_prompt_injection: []
+    approval_required_tools: []
+    blocked_tools: []
+    sensitive_argument_keys: []
+    blocked_egress_patterns:
+      - private_key_block
+      - github_token
+""",
+        encoding="utf-8",
+    )
+
+    loaded = load_policy_profile(config_path, "review_output", include_tool_call_policy=True)
+
+    assert loaded.egress_policy == EgressPolicy(
+        blocked_patterns=("private_key_block", "github_token"),
+    )
+
+
 def test_load_policy_profile_rejects_missing_profile(tmp_path: Path) -> None:
     config_path = tmp_path / "policies.yaml"
     config_path.write_text("profiles:\n  default: {}\n", encoding="utf-8")
@@ -134,5 +160,26 @@ profiles:
     with pytest.raises(
         PolicyProfileError,
         match="profiles.bad.blocked_tools must contain only strings",
+    ):
+        load_policy_profile(config_path, "bad", include_tool_call_policy=True)
+
+
+def test_load_policy_profile_rejects_unknown_egress_patterns(tmp_path: Path) -> None:
+    config_path = tmp_path / "policies.yaml"
+    config_path.write_text(
+        """
+profiles:
+  bad:
+    approval_required_actions: []
+    blocked_actions_on_prompt_injection: []
+    blocked_egress_patterns:
+      - imaginary_pattern
+""",
+        encoding="utf-8",
+    )
+
+    with pytest.raises(
+        PolicyProfileError,
+        match="profiles.bad.blocked_egress_patterns contains unknown pattern 'imaginary_pattern'",
     ):
         load_policy_profile(config_path, "bad", include_tool_call_policy=True)

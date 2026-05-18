@@ -1,4 +1,4 @@
-from aiegis.egress_guard import inspect_output
+from aiegis.egress_guard import EgressPolicy, inspect_output
 from aiegis.models import FindingSeverity
 from aiegis.policy import DecisionStatus
 
@@ -55,3 +55,14 @@ def test_output_inspection_serializes_without_original_secret() -> None:
         ],
         "reasons": ["Secret-like output matched egress pattern 'github_token'."],
     }
+
+
+def test_inspect_output_uses_configured_blocked_patterns() -> None:
+    inspection = inspect_output(
+        "Use api_key = sk-test-1234567890abcdef",
+        policy=EgressPolicy(blocked_patterns=("github_token",)),
+    )
+
+    assert inspection.status is DecisionStatus.ALLOW
+    assert inspection.redacted_text == "Use api_key = sk-test-1234567890abcdef"
+    assert inspection.findings == ()

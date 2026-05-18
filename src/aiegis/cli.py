@@ -8,7 +8,7 @@ from uuid import uuid4
 
 from aiegis.audit import AuditRecord
 from aiegis.audit_integrity import verify_audit_log
-from aiegis.egress_guard import inspect_output
+from aiegis.egress_guard import EgressPolicy, inspect_output
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
@@ -40,7 +40,7 @@ def main() -> int:
         return 0
 
     if args.command == "inspect-output":
-        inspection = inspect_output(_read_input(args.path))
+        inspection = inspect_output(_read_input(args.path), policy=_egress_policy_from_args(args))
         print(json.dumps(inspection.to_dict(), sort_keys=True))
         return 0 if inspection.status is DecisionStatus.ALLOW else 1
 
@@ -82,6 +82,7 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect_output_parser.add_argument(
         "path", nargs="?", help="Output text file path. Reads stdin when omitted."
     )
+    _add_policy_arguments(inspect_output_parser)
 
     mcp_stdio_parser = subcommands.add_parser(
         "mcp-stdio", help="Run the AIegis MCP server over stdio."
@@ -166,6 +167,7 @@ def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
     return McpServerConfig(
         policy=loaded_profile.content_policy,
         tool_call_policy=loaded_profile.tool_call_policy,
+        egress_policy=loaded_profile.egress_policy,
         policy_profile=args.policy_profile,
         audit_log=Path(args.audit_log) if args.audit_log is not None else None,
         audit_include_raw=args.audit_include_raw,
@@ -178,14 +180,19 @@ def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
 def _loaded_profile_from_args(args: argparse.Namespace) -> LoadedPolicyProfile:
     if args.policy_file is None:
         return LoadedPolicyProfile(
-            content_policy=_DEFAULT_POLICY,
-            tool_call_policy=McpServerConfig().tool_call_policy,
-        )
+        content_policy=_DEFAULT_POLICY,
+        tool_call_policy=McpServerConfig().tool_call_policy,
+        egress_policy=McpServerConfig().egress_policy,
+    )
     return load_policy_profile(
         Path(args.policy_file),
         args.policy_profile,
         include_tool_call_policy=True,
     )
+
+
+def _egress_policy_from_args(args: argparse.Namespace) -> EgressPolicy:
+    return _loaded_profile_from_args(args).egress_policy
 
 
 def _read_input(path: str | None) -> str:

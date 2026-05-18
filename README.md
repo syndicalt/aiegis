@@ -86,7 +86,17 @@ profiles:
     sensitive_argument_keys:
       - api_key
       - token
+    blocked_egress_patterns:
+      - private_key_block
+      - github_token
+      - aws_access_key_id
+      - slack_token
+      - api_key_assignment
 ```
+
+`blocked_egress_patterns` controls which outbound secret-like patterns
+`inspect-output` and `aiegis.inspect_output` block and redact. Omit the key to
+use the built-in default pattern set.
 
 Append metadata-only audit events to a Zaxy Eventloom log:
 

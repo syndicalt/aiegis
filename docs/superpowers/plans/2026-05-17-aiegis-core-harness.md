@@ -403,6 +403,44 @@ Run: `pytest tests/test_egress_guard.py tests/test_cli.py tests/test_mcp_server.
 
 Observed: `38 passed`.
 
+### Task 20: Configurable Egress Policy Profiles
+
+**Files:**
+- Modify: `tests/test_egress_guard.py`
+- Modify: `tests/test_policy_profiles.py`
+- Modify: `tests/test_cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/egress_guard.py`
+- Modify: `src/aiegis/policy_profiles.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `examples/policies.yaml`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover `EgressPolicy`, YAML `blocked_egress_patterns`, unknown pattern
+validation, CLI `inspect-output` profile selection, and MCP egress policy
+configuration.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_egress_guard.py tests/test_policy_profiles.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: failed because `EgressPolicy` did not exist and policy profiles did
+not load egress settings.
+
+- [x] **Step 3: Implement profile-driven egress policy**
+
+Added `EgressPolicy`, known egress pattern validation, profile loading through
+`LoadedPolicyProfile`, and CLI/MCP propagation.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_egress_guard.py tests/test_policy_profiles.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: `49 passed`.
+
 ### Task 14: Local JSONL Audit Sink
 
 **Files:**
