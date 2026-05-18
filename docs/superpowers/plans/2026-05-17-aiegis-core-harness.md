@@ -198,6 +198,38 @@ Run: `pytest tests/test_policy_profiles.py tests/test_cli.py -q`
 
 Observed: `10 passed`.
 
+### Task 9: Zaxy Eventloom Audit Sink
+
+**Files:**
+- Create: `tests/test_eventloom_sink.py`
+- Create: `src/aiegis/eventloom_sink.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover metadata-only Eventloom payload construction, optional Zaxy dependency
+failure, EventLog append arguments, and CLI wiring through `--eventloom-log` and
+`--eventloom-thread`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_eventloom_sink.py tests/test_cli.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.eventloom_sink'`.
+
+- [x] **Step 3: Implement minimal sink and CLI flags**
+
+Implemented `EventloomSink`, metadata-first payload building, optional import of
+`zaxy.event.EventLog`, and CLI append support.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_eventloom_sink.py tests/test_cli.py -q`
+
+Observed: `10 passed`.
+
 ### Task 10: MCP Stdio Guard Server
 
 **Files:**
@@ -231,34 +263,35 @@ Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
 
 Observed: `15 passed`.
 
-### Task 9: Zaxy Eventloom Audit Sink
+### Task 11: MCP Runtime Policy And Audit Configuration
 
 **Files:**
-- Create: `tests/test_eventloom_sink.py`
-- Create: `src/aiegis/eventloom_sink.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/mcp_server.py`
 - Modify: `tests/test_cli.py`
 - Modify: `src/aiegis/cli.py`
 - Modify: `README.md`
 
 - [x] **Step 1: Write failing tests**
 
-Tests cover metadata-only Eventloom payload construction, optional Zaxy dependency
-failure, EventLog append arguments, and CLI wiring through `--eventloom-log` and
-`--eventloom-thread`.
+Tests cover custom `McpServerConfig` policy evaluation, metadata-only Eventloom
+append behavior for MCP tool calls, and CLI propagation of `--policy-file`,
+`--policy-profile`, `--eventloom-log`, and `--eventloom-thread` to `mcp-stdio`.
 
 - [x] **Step 2: Run tests and verify failure**
 
-Run: `pytest tests/test_eventloom_sink.py tests/test_cli.py -q`
+Run: `pytest tests/test_mcp_server.py -q`
 
-Observed: failed with `ModuleNotFoundError: No module named 'aiegis.eventloom_sink'`.
+Observed: failed with `ImportError: cannot import name 'McpServerConfig'`.
 
-- [x] **Step 3: Implement minimal sink and CLI flags**
+- [x] **Step 3: Implement MCP server runtime config**
 
-Implemented `EventloomSink`, metadata-first payload building, optional import of
-`zaxy.event.EventLog`, and CLI append support.
+Implemented `McpServerConfig`, routed policy evaluation through it, appended
+Eventloom audits for MCP tool calls when configured, and wired the same flags
+onto `aiegis mcp-stdio`.
 
 - [x] **Step 4: Run focused tests and verify pass**
 
-Run: `pytest tests/test_eventloom_sink.py tests/test_cli.py -q`
+Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
 
-Observed: `10 passed`.
+Observed: `18 passed`.

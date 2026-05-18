@@ -172,10 +172,10 @@ def test_cli_without_command_returns_usage_error(capsys, monkeypatch) -> None:
 
 
 def test_mcp_stdio_command_runs_server(capsys, monkeypatch) -> None:
-    calls: list[str] = []
+    calls: list[object] = []
 
-    def fake_run_stdio_server() -> None:
-        calls.append("ran")
+    def fake_run_stdio_server(*, config) -> None:
+        calls.append(config)
 
     monkeypatch.setattr("aiegis.cli.run_stdio_server", fake_run_stdio_server)
     monkeypatch.setattr("sys.argv", ["aiegis", "mcp-stdio"])
@@ -183,7 +183,57 @@ def test_mcp_stdio_command_runs_server(capsys, monkeypatch) -> None:
     exit_code = main()
 
     assert exit_code == 0
-    assert calls == ["ran"]
+    assert len(calls) == 1
+    assert capsys.readouterr().out == ""
+
+
+def test_mcp_stdio_command_passes_policy_and_eventloom_config(
+    capsys, monkeypatch, tmp_path
+) -> None:
+    policy_path = tmp_path / "policies.yaml"
+    policy_path.write_text(
+        """
+profiles:
+  review_only:
+    approval_required_actions:
+      - send_email
+    blocked_actions_on_prompt_injection: []
+""",
+        encoding="utf-8",
+    )
+    eventloom_path = tmp_path / "aiegis.jsonl"
+    calls: list[object] = []
+
+    def fake_run_stdio_server(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.run_stdio_server", fake_run_stdio_server)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "mcp-stdio",
+            "--policy-file",
+            str(policy_path),
+            "--policy-profile",
+            "review_only",
+            "--eventloom-log",
+            str(eventloom_path),
+            "--eventloom-thread",
+            "aiegis-security",
+        ],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    config = calls[0]
+    assert config.policy.approval_required_actions == ("send_email",)
+    assert config.policy.blocked_actions_on_prompt_injection == ()
+    assert config.policy_profile == "review_only"
+    assert config.eventloom_log == eventloom_path
+    assert config.eventloom_thread == "aiegis-security"
     assert capsys.readouterr().out == ""
 
 

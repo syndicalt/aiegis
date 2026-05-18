@@ -81,6 +81,16 @@ Run AIegis as a local MCP stdio server:
 aiegis mcp-stdio
 ```
 
+Run the MCP server with the same policy and audit controls as CLI inspection:
+
+```bash
+aiegis mcp-stdio \
+  --policy-file examples/policies.yaml \
+  --policy-profile review_only \
+  --eventloom-log .eventloom/aiegis.jsonl \
+  --eventloom-thread aiegis-default
+```
+
 The server exposes:
 
 - `aiegis.inspect_html`

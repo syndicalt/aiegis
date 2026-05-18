@@ -9,7 +9,7 @@ from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
-from aiegis.mcp_server import run_stdio_server
+from aiegis.mcp_server import McpServerConfig, run_stdio_server
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
 from aiegis.policy_profiles import load_policy_profile
@@ -35,7 +35,7 @@ def main() -> int:
         return 0
 
     if args.command == "mcp-stdio":
-        run_stdio_server()
+        run_stdio_server(config=_mcp_config_from_args(args))
         return 0
 
     parser.print_help(sys.stderr)
@@ -60,7 +60,10 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect_email_parser.add_argument("--target", default="local", help="Proposed action target.")
     _add_policy_arguments(inspect_email_parser)
 
-    subcommands.add_parser("mcp-stdio", help="Run the AIegis MCP server over stdio.")
+    mcp_stdio_parser = subcommands.add_parser(
+        "mcp-stdio", help="Run the AIegis MCP server over stdio."
+    )
+    _add_policy_arguments(mcp_stdio_parser)
 
     return parser
 
@@ -106,6 +109,15 @@ def _print_inspection(
             policy_profile=args.policy_profile,
         )
     print(record.to_json())
+
+
+def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
+    return McpServerConfig(
+        policy=_policy_from_args(args),
+        policy_profile=args.policy_profile,
+        eventloom_log=Path(args.eventloom_log) if args.eventloom_log is not None else None,
+        eventloom_thread=args.eventloom_thread,
+    )
 
 
 def _read_input(path: str | None) -> str:

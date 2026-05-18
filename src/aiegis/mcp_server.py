@@ -2,11 +2,14 @@ from __future__ import annotations
 
 import json
 import sys
-from typing import Any, TextIO
+from dataclasses import dataclass
+from pathlib import Path
+from typing import Any, Protocol, TextIO
 from uuid import uuid4
 
 from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
+from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
@@ -31,7 +34,34 @@ _INSPECTION_INPUT_SCHEMA: dict[str, object] = {
 }
 
 
-def handle_jsonrpc_message(message: dict[str, Any]) -> dict[str, Any] | None:
+class EventloomSinkProtocol(Protocol):
+    def append(
+        self,
+        record: AuditRecord,
+        *,
+        log_path: Path,
+        thread: str,
+        policy_profile: str,
+    ) -> None: ...
+
+
+@dataclass(frozen=True, slots=True)
+class McpServerConfig:
+    policy: Policy = _DEFAULT_POLICY
+    policy_profile: str = "default"
+    eventloom_log: Path | None = None
+    eventloom_thread: str = "default"
+    eventloom_sink: EventloomSinkProtocol | None = None
+
+
+_DEFAULT_MCP_CONFIG = McpServerConfig()
+
+
+def handle_jsonrpc_message(
+    message: dict[str, Any],
+    *,
+    config: McpServerConfig = _DEFAULT_MCP_CONFIG,
+) -> dict[str, Any] | None:
     request_id = message.get("id")
     method = message.get("method")
     if request_id is None:
@@ -43,7 +73,7 @@ def handle_jsonrpc_message(message: dict[str, Any]) -> dict[str, Any] | None:
         if method == "tools/list":
             return _response(request_id, {"tools": _tool_definitions()})
         if method == "tools/call":
-            return _response(request_id, _call_tool(message.get("params")))
+            return _response(request_id, _call_tool(message.get("params"), config=config))
         return _error(request_id, -32601, f"Method not found: {method}")
     except ValueError as exc:
         return _error(request_id, -32602, str(exc))
@@ -53,6 +83,7 @@ def run_stdio_server(
     *,
     stdin: TextIO = sys.stdin,
     stdout: TextIO = sys.stdout,
+    config: McpServerConfig = _DEFAULT_MCP_CONFIG,
 ) -> None:
     for line in stdin:
         stripped = line.strip()
@@ -64,7 +95,7 @@ def run_stdio_server(
         except json.JSONDecodeError:
             response = _error(None, -32700, "Parse error")
         else:
-            response = handle_jsonrpc_message(message)
+            response = handle_jsonrpc_message(message, config=config)
         if response is None:
             continue
         stdout.write(json.dumps(response, sort_keys=True, separators=(",", ":")) + "\n")
@@ -100,7 +131,7 @@ def _tool_definitions() -> list[dict[str, object]]:
     ]
 
 
-def _call_tool(params: object) -> dict[str, object]:
+def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
     if not isinstance(params, dict):
         raise ValueError("tools/call params must be an object.")
     name = params.get("name")
@@ -123,7 +154,17 @@ def _call_tool(params: object) -> dict[str, object]:
     else:
         raise ValueError(f"Unknown tool: {name}")
 
-    audit = _audit_guarded_content(guarded, action=action, target=target).to_dict()
+    record = _audit_guarded_content(guarded, action=action, target=target, policy=config.policy)
+    if config.eventloom_log is not None:
+        sink = config.eventloom_sink if config.eventloom_sink is not None else EventloomSink()
+        sink.append(
+            record,
+            log_path=config.eventloom_log,
+            thread=config.eventloom_thread,
+            policy_profile=config.policy_profile,
+        )
+
+    audit = record.to_dict()
     return {
         "content": [{"type": "text", "text": json.dumps(audit, sort_keys=True)}],
         "structuredContent": audit,
@@ -131,11 +172,17 @@ def _call_tool(params: object) -> dict[str, object]:
     }
 
 
-def _audit_guarded_content(content: GuardedContent, *, action: str, target: str) -> AuditRecord:
+def _audit_guarded_content(
+    content: GuardedContent,
+    *,
+    action: str,
+    target: str,
+    policy: Policy,
+) -> AuditRecord:
     decision = evaluate_policy(
         content,
         ActionRequest(name=action, target=target),
-        _DEFAULT_POLICY,
+        policy,
     )
     return AuditRecord(event_id=f"evt_{uuid4().hex}", content=content, decision=decision)
 
