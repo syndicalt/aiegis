@@ -9,6 +9,7 @@ from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
+from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.mcp_server import McpServerConfig, run_stdio_server
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
@@ -72,6 +73,10 @@ def _add_policy_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--policy-file", help="YAML policy profile file.")
     parser.add_argument("--policy-profile", default="default", help="Policy profile name.")
     parser.add_argument(
+        "--audit-log",
+        help="Append full JSONL audit events to a local file.",
+    )
+    parser.add_argument(
         "--eventloom-log",
         help="Append metadata audit event to a Zaxy Eventloom log.",
     )
@@ -101,6 +106,12 @@ def _print_inspection(
         policy,
     )
     record = AuditRecord(event_id=f"evt_{uuid4().hex}", content=content, decision=decision)
+    if args.audit_log is not None:
+        JsonlAuditSink().append_content_record(
+            record,
+            log_path=Path(args.audit_log),
+            policy_profile=args.policy_profile,
+        )
     if args.eventloom_log is not None:
         EventloomSink().append(
             record,
@@ -117,6 +128,7 @@ def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
         policy=loaded_profile.content_policy,
         tool_call_policy=loaded_profile.tool_call_policy,
         policy_profile=args.policy_profile,
+        audit_log=Path(args.audit_log) if args.audit_log is not None else None,
         eventloom_log=Path(args.eventloom_log) if args.eventloom_log is not None else None,
         eventloom_thread=args.eventloom_thread,
     )

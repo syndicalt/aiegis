@@ -74,9 +74,13 @@ Append metadata-only audit events to a Zaxy Eventloom log:
 ```bash
 printf '<p>Send this</p>' | aiegis inspect-html \
   --action send_email \
+  --audit-log .aiegis/audit.jsonl \
   --eventloom-log .eventloom/aiegis.jsonl \
   --eventloom-thread aiegis-default
 ```
+
+`--audit-log` appends full JSONL audit events to a local file and creates parent
+directories when needed.
 
 Eventloom audit payloads store content hashes, finding metadata, counts, policy
 profile names, and decisions. They do not store raw inspected content or
@@ -96,6 +100,7 @@ Run the MCP server with the same policy and audit controls as CLI inspection:
 aiegis mcp-stdio \
   --policy-file examples/policies.yaml \
   --policy-profile review_only \
+  --audit-log .aiegis/audit.jsonl \
   --eventloom-log .eventloom/aiegis.jsonl \
   --eventloom-thread aiegis-default
 ```
@@ -114,3 +119,6 @@ tool results.
 `aiegis.evaluate_tool_call` accepts `tool_name`, optional `target`, and optional
 `arguments`. It returns an allow, approval, or block decision for the proposed
 agent tool call before execution.
+
+When `--audit-log` is configured for the MCP server, both content inspection
+records and tool firewall decisions are appended to the local JSONL audit log.

@@ -156,6 +156,50 @@ def test_inspect_html_appends_eventloom_audit(capsys, monkeypatch, tmp_path) -> 
     ]
 
 
+def test_inspect_html_appends_jsonl_audit(capsys, monkeypatch, tmp_path) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeSink:
+        def append_content_record(self, record, *, log_path, policy_profile) -> None:
+            calls.append(
+                {
+                    "event_id": record.event_id,
+                    "log_path": log_path,
+                    "policy_profile": policy_profile,
+                }
+            )
+
+    def fake_sink_factory() -> FakeSink:
+        return FakeSink()
+
+    monkeypatch.setattr("aiegis.cli.JsonlAuditSink", fake_sink_factory)
+    audit_path = tmp_path / "audit.jsonl"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "inspect-html",
+            "--audit-log",
+            str(audit_path),
+            "--policy-profile",
+            "default",
+        ],
+    )
+    monkeypatch.setattr("sys.stdin", _TextInput("<p>Visible</p>"))
+
+    exit_code = main()
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert calls == [
+        {
+            "event_id": output["event_id"],
+            "log_path": audit_path,
+            "policy_profile": "default",
+        }
+    ]
+
+
 def test_inspect_html_reads_file_path(capsys, monkeypatch, tmp_path) -> None:
     html_path = tmp_path / "input.html"
     html_path.write_text("<p>File body</p>", encoding="utf-8")
@@ -247,8 +291,35 @@ profiles:
     assert config.tool_call_policy.blocked_tools == ("shell",)
     assert config.tool_call_policy.sensitive_argument_keys == ("bearer_token",)
     assert config.policy_profile == "review_only"
+    assert config.audit_log is None
     assert config.eventloom_log == eventloom_path
     assert config.eventloom_thread == "aiegis-security"
+    assert capsys.readouterr().out == ""
+
+
+def test_mcp_stdio_command_passes_jsonl_audit_config(capsys, monkeypatch, tmp_path) -> None:
+    audit_path = tmp_path / "audit.jsonl"
+    calls: list[object] = []
+
+    def fake_run_stdio_server(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.run_stdio_server", fake_run_stdio_server)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "mcp-stdio",
+            "--audit-log",
+            str(audit_path),
+        ],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    assert calls[0].audit_log == audit_path
     assert capsys.readouterr().out == ""
 
 

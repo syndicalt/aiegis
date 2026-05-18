@@ -263,6 +263,41 @@ Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
 
 Observed: `15 passed`.
 
+### Task 14: Local JSONL Audit Sink
+
+**Files:**
+- Create: `tests/test_jsonl_audit_sink.py`
+- Create: `src/aiegis/jsonl_audit_sink.py`
+- Modify: `tests/test_cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover appending content audit records and tool-call decisions to local
+JSONL, CLI `--audit-log` wiring for inspection commands, MCP `--audit-log`
+configuration, and MCP audit writes for content and tool decisions.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_jsonl_audit_sink.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.jsonl_audit_sink'`.
+
+- [x] **Step 3: Implement JSONL sink and runtime wiring**
+
+Implemented `JsonlAuditSink`, added `--audit-log`, appended content inspection
+records from CLI and MCP, and appended MCP tool firewall decisions when a local
+audit log is configured.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_server.py tests/test_cli.py tests/test_jsonl_audit_sink.py -q`
+
+Observed: `26 passed`.
+
 ### Task 13: Configurable Tool Firewall Profiles
 
 **Files:**

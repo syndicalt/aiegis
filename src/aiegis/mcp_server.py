@@ -11,9 +11,11 @@ from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
+from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
 from aiegis.tool_firewall import (
+    ToolCallDecision,
     ToolCallPolicy,
     ToolCallRequest,
     evaluate_tool_call,
@@ -61,11 +63,31 @@ class EventloomSinkProtocol(Protocol):
     ) -> None: ...
 
 
+class JsonlAuditSinkProtocol(Protocol):
+    def append_content_record(
+        self,
+        record: AuditRecord,
+        *,
+        log_path: Path,
+        policy_profile: str,
+    ) -> None: ...
+
+    def append_tool_call_decision(
+        self,
+        decision: ToolCallDecision,
+        *,
+        log_path: Path,
+        policy_profile: str,
+    ) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class McpServerConfig:
     policy: Policy = _DEFAULT_POLICY
     tool_call_policy: ToolCallPolicy = ToolCallPolicy()
     policy_profile: str = "default"
+    audit_log: Path | None = None
+    audit_sink: JsonlAuditSinkProtocol | None = None
     eventloom_log: Path | None = None
     eventloom_thread: str = "default"
     eventloom_sink: EventloomSinkProtocol | None = None
@@ -183,6 +205,13 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
         raise ValueError(f"Unknown tool: {name}")
 
     record = _audit_guarded_content(guarded, action=action, target=target, policy=config.policy)
+    if config.audit_log is not None:
+        audit_sink = config.audit_sink if config.audit_sink is not None else JsonlAuditSink()
+        audit_sink.append_content_record(
+            record,
+            log_path=config.audit_log,
+            policy_profile=config.policy_profile,
+        )
     if config.eventloom_log is not None:
         sink = config.eventloom_sink if config.eventloom_sink is not None else EventloomSink()
         sink.append(
@@ -214,10 +243,18 @@ def _evaluate_tool_call(
     decision = evaluate_tool_call(
         ToolCallRequest(name=tool_name, target=target, arguments=dict(tool_arguments)),
         config.tool_call_policy,
-    ).to_dict()
+    )
+    if config.audit_log is not None:
+        audit_sink = config.audit_sink if config.audit_sink is not None else JsonlAuditSink()
+        audit_sink.append_tool_call_decision(
+            decision,
+            log_path=config.audit_log,
+            policy_profile=config.policy_profile,
+        )
+    decision_dict = decision.to_dict()
     return {
-        "content": [{"type": "text", "text": json.dumps(decision, sort_keys=True)}],
-        "structuredContent": decision,
+        "content": [{"type": "text", "text": json.dumps(decision_dict, sort_keys=True)}],
+        "structuredContent": decision_dict,
         "isError": False,
     }
 

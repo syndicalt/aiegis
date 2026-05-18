@@ -162,6 +162,46 @@ def test_tools_call_appends_eventloom_audit_when_configured() -> None:
     ]
 
 
+def test_tools_call_appends_jsonl_content_audit_when_configured() -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeSink:
+        def append_content_record(self, record, *, log_path, policy_profile) -> None:
+            calls.append(
+                {
+                    "event_id": record.event_id,
+                    "log_path": log_path,
+                    "policy_profile": policy_profile,
+                }
+            )
+
+    response = handle_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call-jsonl-audit",
+            "method": "tools/call",
+            "params": {
+                "name": "aiegis.inspect_html",
+                "arguments": {"content": "<p>Visible</p>"},
+            },
+        },
+        config=McpServerConfig(
+            audit_log=Path(".aiegis/audit.jsonl"),
+            audit_sink=FakeSink(),
+            policy_profile="default",
+        ),
+    )
+
+    audit = response["result"]["structuredContent"]
+    assert calls == [
+        {
+            "event_id": audit["event_id"],
+            "log_path": Path(".aiegis/audit.jsonl"),
+            "policy_profile": "default",
+        }
+    ]
+
+
 def test_tools_call_inspect_email_returns_email_audit_result() -> None:
     response = handle_jsonrpc_message(
         {
@@ -254,6 +294,51 @@ def test_tools_call_evaluates_proposed_tool_with_configured_firewall() -> None:
     decision = response["result"]["structuredContent"]
     assert decision["status"] == "block"
     assert decision["reasons"] == ["Tool 'internal.sync' is blocked by policy."]
+
+
+def test_tools_call_appends_jsonl_tool_decision_when_configured() -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeSink:
+        def append_tool_call_decision(self, decision, *, log_path, policy_profile) -> None:
+            calls.append(
+                {
+                    "status": decision.status.value,
+                    "tool_name": decision.tool.name,
+                    "log_path": log_path,
+                    "policy_profile": policy_profile,
+                }
+            )
+
+    handle_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call-tool-audit",
+            "method": "tools/call",
+            "params": {
+                "name": "aiegis.evaluate_tool_call",
+                "arguments": {
+                    "tool_name": "http.post",
+                    "target": "https://example.test/upload",
+                    "arguments": {"token": "secret-token"},
+                },
+            },
+        },
+        config=McpServerConfig(
+            audit_log=Path(".aiegis/audit.jsonl"),
+            audit_sink=FakeSink(),
+            policy_profile="strict",
+        ),
+    )
+
+    assert calls == [
+        {
+            "status": "block",
+            "tool_name": "http.post",
+            "log_path": Path(".aiegis/audit.jsonl"),
+            "policy_profile": "strict",
+        }
+    ]
 
 
 def test_unknown_tool_returns_jsonrpc_error() -> None:
