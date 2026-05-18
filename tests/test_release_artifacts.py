@@ -13,6 +13,12 @@ def test_release_check_script_runs_required_quality_gates() -> None:
     assert "twine check dist/*" in script
 
 
+def test_dev_dependencies_include_yaml_type_stubs_for_ci_mypy() -> None:
+    pyproject = Path("pyproject.toml").read_text(encoding="utf-8")
+
+    assert '"types-PyYAML' in pyproject
+
+
 def test_ci_workflow_runs_release_check_on_supported_python_versions() -> None:
     workflow = yaml.safe_load(Path(".github/workflows/ci.yml").read_text(encoding="utf-8"))
 
