@@ -169,7 +169,8 @@ def test_inspect_html_appends_jsonl_audit(capsys, monkeypatch, tmp_path) -> None
                 }
             )
 
-    def fake_sink_factory() -> FakeSink:
+    def fake_sink_factory(*, include_raw: bool = False) -> FakeSink:
+        calls.append({"include_raw": include_raw})
         return FakeSink()
 
     monkeypatch.setattr("aiegis.cli.JsonlAuditSink", fake_sink_factory)
@@ -192,11 +193,59 @@ def test_inspect_html_appends_jsonl_audit(capsys, monkeypatch, tmp_path) -> None
     assert exit_code == 0
     output = json.loads(capsys.readouterr().out)
     assert calls == [
+        {"include_raw": False},
         {
             "event_id": output["event_id"],
             "log_path": audit_path,
             "policy_profile": "default",
         }
+    ]
+
+
+def test_inspect_html_passes_raw_audit_opt_in_to_jsonl_sink(
+    capsys, monkeypatch, tmp_path
+) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeSink:
+        def append_content_record(self, record, *, log_path, policy_profile) -> None:
+            calls.append(
+                {
+                    "event_id": record.event_id,
+                    "log_path": log_path,
+                    "policy_profile": policy_profile,
+                }
+            )
+
+    def fake_sink_factory(*, include_raw: bool = False) -> FakeSink:
+        calls.append({"include_raw": include_raw})
+        return FakeSink()
+
+    monkeypatch.setattr("aiegis.cli.JsonlAuditSink", fake_sink_factory)
+    audit_path = tmp_path / "audit.jsonl"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "inspect-html",
+            "--audit-log",
+            str(audit_path),
+            "--audit-include-raw",
+        ],
+    )
+    monkeypatch.setattr("sys.stdin", _TextInput("<p>Visible</p>"))
+
+    exit_code = main()
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert calls == [
+        {"include_raw": True},
+        {
+            "event_id": output["event_id"],
+            "log_path": audit_path,
+            "policy_profile": "default",
+        },
     ]
 
 
@@ -320,6 +369,35 @@ def test_mcp_stdio_command_passes_jsonl_audit_config(capsys, monkeypatch, tmp_pa
     assert exit_code == 0
     assert len(calls) == 1
     assert calls[0].audit_log == audit_path
+    assert calls[0].audit_include_raw is False
+    assert capsys.readouterr().out == ""
+
+
+def test_mcp_stdio_command_passes_raw_audit_opt_in(capsys, monkeypatch, tmp_path) -> None:
+    audit_path = tmp_path / "audit.jsonl"
+    calls: list[object] = []
+
+    def fake_run_stdio_server(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.run_stdio_server", fake_run_stdio_server)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "mcp-stdio",
+            "--audit-log",
+            str(audit_path),
+            "--audit-include-raw",
+        ],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    assert calls[0].audit_log == audit_path
+    assert calls[0].audit_include_raw is True
     assert capsys.readouterr().out == ""
 
 

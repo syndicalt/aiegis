@@ -23,8 +23,14 @@ _REDACTED = "[REDACTED]"
 
 
 class JsonlAuditSink:
-    def __init__(self, clock: Callable[[], str] | None = None) -> None:
+    def __init__(
+        self,
+        clock: Callable[[], str] | None = None,
+        *,
+        include_raw: bool = False,
+    ) -> None:
         self._clock = clock or _utc_now
+        self._include_raw = include_raw
 
     def append_content_record(
         self,
@@ -37,7 +43,7 @@ class JsonlAuditSink:
             log_path=log_path,
             event_type=CONTENT_DECIDED_EVENT,
             policy_profile=policy_profile,
-            payload=_minimized_content_payload(record),
+            payload=record.to_dict() if self._include_raw else _minimized_content_payload(record),
         )
 
     def append_tool_call_decision(
@@ -51,7 +57,11 @@ class JsonlAuditSink:
             log_path=log_path,
             event_type=TOOL_CALL_DECIDED_EVENT,
             policy_profile=policy_profile,
-            payload=_redacted_tool_call_payload(decision),
+            payload=(
+                decision.to_dict()
+                if self._include_raw
+                else _redacted_tool_call_payload(decision)
+            ),
         )
 
     def _append_event(

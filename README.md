@@ -84,6 +84,10 @@ parent directories when needed. Content audit logs omit raw text and quarantined
 segments, and tool-call audit logs redact sensitive argument values such as
 tokens, passwords, secrets, credentials, and API keys.
 
+Use `--audit-include-raw` only for local debugging sessions that explicitly need
+the full inspected payload. It stores raw untrusted content, quarantined
+segments, links, and unredacted tool arguments in the local JSONL audit log.
+
 Eventloom audit payloads store content hashes, finding metadata, counts, policy
 profile names, and decisions. They do not store raw inspected content or
 quarantined segments.
@@ -106,6 +110,10 @@ aiegis mcp-stdio \
   --eventloom-log .eventloom/aiegis.jsonl \
   --eventloom-thread aiegis-default
 ```
+
+For short-lived local debugging, add `--audit-include-raw` to the CLI or MCP
+server command to include raw payloads in `--audit-log`. Leave it unset for
+normal operation.
 
 The server exposes:
 

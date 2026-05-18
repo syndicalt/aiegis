@@ -87,6 +87,7 @@ class McpServerConfig:
     tool_call_policy: ToolCallPolicy = ToolCallPolicy()
     policy_profile: str = "default"
     audit_log: Path | None = None
+    audit_include_raw: bool = False
     audit_sink: JsonlAuditSinkProtocol | None = None
     eventloom_log: Path | None = None
     eventloom_thread: str = "default"
@@ -206,7 +207,11 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
 
     record = _audit_guarded_content(guarded, action=action, target=target, policy=config.policy)
     if config.audit_log is not None:
-        audit_sink = config.audit_sink if config.audit_sink is not None else JsonlAuditSink()
+        audit_sink = (
+            config.audit_sink
+            if config.audit_sink is not None
+            else JsonlAuditSink(include_raw=config.audit_include_raw)
+        )
         audit_sink.append_content_record(
             record,
             log_path=config.audit_log,
@@ -245,7 +250,11 @@ def _evaluate_tool_call(
         config.tool_call_policy,
     )
     if config.audit_log is not None:
-        audit_sink = config.audit_sink if config.audit_sink is not None else JsonlAuditSink()
+        audit_sink = (
+            config.audit_sink
+            if config.audit_sink is not None
+            else JsonlAuditSink(include_raw=config.audit_include_raw)
+        )
         audit_sink.append_tool_call_decision(
             decision,
             log_path=config.audit_log,

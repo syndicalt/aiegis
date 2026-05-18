@@ -74,7 +74,12 @@ def _add_policy_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--policy-profile", default="default", help="Policy profile name.")
     parser.add_argument(
         "--audit-log",
-        help="Append full JSONL audit events to a local file.",
+        help="Append minimized JSONL audit events to a local file.",
+    )
+    parser.add_argument(
+        "--audit-include-raw",
+        action="store_true",
+        help="Include raw content and unredacted tool arguments in local JSONL audit logs.",
     )
     parser.add_argument(
         "--eventloom-log",
@@ -107,7 +112,7 @@ def _print_inspection(
     )
     record = AuditRecord(event_id=f"evt_{uuid4().hex}", content=content, decision=decision)
     if args.audit_log is not None:
-        JsonlAuditSink().append_content_record(
+        JsonlAuditSink(include_raw=args.audit_include_raw).append_content_record(
             record,
             log_path=Path(args.audit_log),
             policy_profile=args.policy_profile,
@@ -129,6 +134,7 @@ def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
         tool_call_policy=loaded_profile.tool_call_policy,
         policy_profile=args.policy_profile,
         audit_log=Path(args.audit_log) if args.audit_log is not None else None,
+        audit_include_raw=args.audit_include_raw,
         eventloom_log=Path(args.eventloom_log) if args.eventloom_log is not None else None,
         eventloom_thread=args.eventloom_thread,
     )
