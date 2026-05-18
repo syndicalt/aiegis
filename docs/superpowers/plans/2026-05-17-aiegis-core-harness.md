@@ -331,6 +331,43 @@ Run: `pytest tests/test_jsonl_audit_sink.py tests/test_cli.py -q`
 
 Observed: `23 passed`.
 
+### Task 18: Input Flood Protection
+
+**Files:**
+- Create: `src/aiegis/input_limits.py`
+- Modify: `tests/test_html_guard.py`
+- Modify: `tests/test_email_guard.py`
+- Modify: `tests/test_cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/html_guard.py`
+- Modify: `src/aiegis/email_guard.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover configured truncation for HTML and email ingestion, CLI
+`--max-input-chars`, and MCP `McpServerConfig.max_input_chars`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_html_guard.py tests/test_email_guard.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: failed because `max_input_chars`, CLI flag parsing, and MCP config
+support were not implemented.
+
+- [x] **Step 3: Implement input limit guard**
+
+Added shared input-limit handling with an `input_truncated` finding, wired the
+limit through HTML/email ingestion, CLI commands, and MCP runtime config.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_html_guard.py tests/test_email_guard.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: `44 passed`.
+
 ### Task 14: Local JSONL Audit Sink
 
 **Files:**

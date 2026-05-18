@@ -50,6 +50,16 @@ printf '<p>Send this</p>' | aiegis inspect-html \
   --policy-profile review_only
 ```
 
+Limit untrusted input before parsing:
+
+```bash
+cat large-email.eml | aiegis inspect-email --max-input-chars 100000
+```
+
+Inputs longer than the configured limit are truncated before HTML or email
+parsing and receive an `input_truncated` finding. The discarded tail is not
+stored in audit payloads.
+
 Policy profile files are YAML:
 
 ```yaml
@@ -116,6 +126,7 @@ Run the MCP server with the same policy and audit controls as CLI inspection:
 aiegis mcp-stdio \
   --policy-file examples/policies.yaml \
   --policy-profile review_only \
+  --max-input-chars 100000 \
   --audit-log .aiegis/audit.jsonl \
   --eventloom-log .eventloom/aiegis.jsonl \
   --eventloom-thread aiegis-default

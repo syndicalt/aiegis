@@ -11,6 +11,7 @@ from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
+from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS
 from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
@@ -88,6 +89,7 @@ class McpServerConfig:
     policy_profile: str = "default"
     audit_log: Path | None = None
     audit_include_raw: bool = False
+    max_input_chars: int | None = DEFAULT_MAX_INPUT_CHARS
     audit_sink: JsonlAuditSinkProtocol | None = None
     eventloom_log: Path | None = None
     eventloom_thread: str = "default"
@@ -199,9 +201,9 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
     target = _optional_string(arguments, "target", default="local")
 
     if name == "aiegis.inspect_html":
-        guarded = inspect_html(content)
+        guarded = inspect_html(content, max_input_chars=config.max_input_chars)
     elif name == "aiegis.inspect_email":
-        guarded = inspect_email(content)
+        guarded = inspect_email(content, max_input_chars=config.max_input_chars)
     else:
         raise ValueError(f"Unknown tool: {name}")
 

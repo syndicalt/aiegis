@@ -120,6 +120,25 @@ def test_tools_call_uses_configured_policy() -> None:
     assert audit["decision"]["status"] == "require_approval"
 
 
+def test_tools_call_uses_configured_max_input_chars() -> None:
+    response = handle_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call-limit",
+            "method": "tools/call",
+            "params": {
+                "name": "aiegis.inspect_html",
+                "arguments": {"content": "A" * 20},
+            },
+        },
+        config=McpServerConfig(max_input_chars=5),
+    )
+
+    audit = response["result"]["structuredContent"]
+    assert audit["content"]["text"] == "AAAAA"
+    assert audit["content"]["findings"][0]["code"] == "input_truncated"
+
+
 def test_tools_call_appends_eventloom_audit_when_configured() -> None:
     calls: list[dict[str, object]] = []
 

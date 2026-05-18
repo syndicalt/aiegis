@@ -6,6 +6,7 @@ from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup, Tag
 
+from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS, apply_input_limit
 from aiegis.models import Finding, FindingSeverity, GuardedContent, SourceType, TrustLevel
 
 _PROMPT_INJECTION_PATTERNS = (
@@ -20,9 +21,14 @@ _BLOCK_TAGS = {"address", "article", "aside", "blockquote", "div", "footer", "h1
 _BLOCK_TAGS.update({"h4", "h5", "h6", "header", "li", "main", "nav", "ol", "p", "section", "ul"})
 
 
-def inspect_html(html: str) -> GuardedContent:
-    soup = BeautifulSoup(html, "html5lib")
-    findings: list[Finding] = []
+def inspect_html(
+    html: str,
+    *,
+    max_input_chars: int | None = DEFAULT_MAX_INPUT_CHARS,
+) -> GuardedContent:
+    limited_html, limit_findings = apply_input_limit(html, max_input_chars=max_input_chars)
+    soup = BeautifulSoup(limited_html, "html5lib")
+    findings: list[Finding] = list(limit_findings)
     quarantined: list[str] = []
     links = _extract_safe_links(soup)
 

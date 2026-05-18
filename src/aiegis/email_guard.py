@@ -7,6 +7,7 @@ from email.parser import Parser
 from email.utils import getaddresses
 
 from aiegis.html_guard import inspect_html
+from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS, apply_input_limit
 from aiegis.models import Finding, FindingSeverity, GuardedContent, SourceType, TrustLevel
 
 _PROMPT_INJECTION_PATTERNS = (
@@ -16,9 +17,17 @@ _PROMPT_INJECTION_PATTERNS = (
 )
 
 
-def inspect_email(raw_email: str) -> GuardedContent:
-    message = Parser(policy=policy.default).parsestr(raw_email)
-    findings: list[Finding] = []
+def inspect_email(
+    raw_email: str,
+    *,
+    max_input_chars: int | None = DEFAULT_MAX_INPUT_CHARS,
+) -> GuardedContent:
+    limited_email, limit_findings = apply_input_limit(
+        raw_email,
+        max_input_chars=max_input_chars,
+    )
+    message = Parser(policy=policy.default).parsestr(limited_email)
+    findings: list[Finding] = list(limit_findings)
     quarantined_segments: list[str] = []
     links: list[str] = []
 

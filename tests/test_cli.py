@@ -5,6 +5,7 @@ from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.tool_firewall import ToolCallPolicy, ToolCallRequest, evaluate_tool_call
 
 USAGE_ERROR = 2
+TEST_MAX_INPUT_CHARS = 128
 
 
 def test_inspect_html_reads_stdin_and_writes_json(capsys, monkeypatch) -> None:
@@ -45,6 +46,21 @@ def test_inspect_html_supports_policy_action_arguments(capsys, monkeypatch) -> N
         "action": {"name": "send_email", "target": "external"},
         "reasons": ["Action 'send_email' is blocked when prompt injection is present."],
     }
+
+
+def test_inspect_html_supports_max_input_chars(capsys, monkeypatch) -> None:
+    monkeypatch.setattr(
+        "sys.argv",
+        ["aiegis", "inspect-html", "--max-input-chars", "5"],
+    )
+    monkeypatch.setattr("sys.stdin", _TextInput("A" * 20))
+
+    exit_code = main()
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert output["content"]["text"] == "AAAAA"
+    assert output["content"]["findings"][0]["code"] == "input_truncated"
 
 
 def test_inspect_email_reads_stdin_and_writes_json(capsys, monkeypatch) -> None:
@@ -372,6 +388,26 @@ def test_mcp_stdio_command_passes_jsonl_audit_config(capsys, monkeypatch, tmp_pa
     assert len(calls) == 1
     assert calls[0].audit_log == audit_path
     assert calls[0].audit_include_raw is False
+    assert capsys.readouterr().out == ""
+
+
+def test_mcp_stdio_command_passes_max_input_chars(capsys, monkeypatch) -> None:
+    calls: list[object] = []
+
+    def fake_run_stdio_server(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.run_stdio_server", fake_run_stdio_server)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["aiegis", "mcp-stdio", "--max-input-chars", str(TEST_MAX_INPUT_CHARS)],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    assert calls[0].max_input_chars == TEST_MAX_INPUT_CHARS
     assert capsys.readouterr().out == ""
 
 

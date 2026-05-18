@@ -93,3 +93,14 @@ def test_inspect_html_treats_zero_font_and_offscreen_text_as_hidden() -> None:
     assert content.text == "Visible"
     assert content.quarantined_segments == ("hidden zero font", "hidden offscreen")
     assert [finding.code for finding in content.findings] == ["hidden_text", "hidden_text"]
+
+
+def test_inspect_html_truncates_input_at_configured_limit() -> None:
+    content = inspect_html("A" * 20, max_input_chars=5)
+
+    assert content.text == "AAAAA"
+    assert content.quarantined_segments == ()
+    assert [
+        (finding.code, finding.severity.value, finding.evidence)
+        for finding in content.findings
+    ] == [("input_truncated", "medium", "original_length=20 limit=5")]

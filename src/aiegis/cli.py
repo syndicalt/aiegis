@@ -11,6 +11,7 @@ from aiegis.audit_integrity import verify_audit_log
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
+from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS
 from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.mcp_server import McpServerConfig, run_stdio_server
 from aiegis.models import GuardedContent
@@ -28,12 +29,12 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.command == "inspect-html":
-        content = inspect_html(_read_input(args.path))
+        content = inspect_html(_read_input(args.path), max_input_chars=args.max_input_chars)
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
         return 0
 
     if args.command == "inspect-email":
-        content = inspect_email(_read_input(args.path))
+        content = inspect_email(_read_input(args.path), max_input_chars=args.max_input_chars)
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
         return 0
 
@@ -85,6 +86,12 @@ def _build_parser() -> argparse.ArgumentParser:
 def _add_policy_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--policy-file", help="YAML policy profile file.")
     parser.add_argument("--policy-profile", default="default", help="Policy profile name.")
+    parser.add_argument(
+        "--max-input-chars",
+        default=DEFAULT_MAX_INPUT_CHARS,
+        type=_positive_int,
+        help="Maximum untrusted input characters to parse before truncation.",
+    )
     parser.add_argument(
         "--audit-log",
         help="Append minimized JSONL audit events to a local file.",
@@ -148,6 +155,7 @@ def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
         policy_profile=args.policy_profile,
         audit_log=Path(args.audit_log) if args.audit_log is not None else None,
         audit_include_raw=args.audit_include_raw,
+        max_input_chars=args.max_input_chars,
         eventloom_log=Path(args.eventloom_log) if args.eventloom_log is not None else None,
         eventloom_thread=args.eventloom_thread,
     )
@@ -170,6 +178,13 @@ def _read_input(path: str | None) -> str:
     if path is None:
         return sys.stdin.read()
     return Path(path).read_text(encoding="utf-8")
+
+
+def _positive_int(value: str) -> int:
+    parsed = int(value)
+    if parsed < 1:
+        raise argparse.ArgumentTypeError("must be a positive integer")
+    return parsed
 
 
 if __name__ == "__main__":
