@@ -1,0 +1,4 @@
+# Customer Document
+
+This document contains ordinary support notes and a request to summarize the case.
+It also includes the phrase ignore previous instructions in a quoted customer log.

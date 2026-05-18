@@ -425,6 +425,75 @@ code {
   color: var(--muted);
 }
 
+.benchmark-hero {
+  min-height: 54vh;
+}
+
+.benchmark-page h1 {
+  max-width: 980px;
+}
+
+.method-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.method-grid article {
+  min-width: 0;
+  padding: 16px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.method-grid p {
+  margin-bottom: 0;
+  color: var(--muted);
+}
+
+.method-grid pre {
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.benchmark-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.benchmark-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  font-size: 0.94rem;
+}
+
+.benchmark-table th,
+.benchmark-table td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+
+.benchmark-table th {
+  color: var(--accent-strong);
+  background: var(--surface-strong);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+}
+
+.benchmark-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.benchmark-table code {
+  white-space: nowrap;
+}
+
 .site-footer {
   display: flex;
   flex-wrap: wrap;
@@ -445,7 +514,8 @@ code {
   .risk-grid,
   .architecture-grid,
   .guard-grid,
-  .posture-grid {
+  .posture-grid,
+  .method-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -484,7 +554,8 @@ code {
   .risk-grid,
   .architecture-grid,
   .guard-grid,
-  .posture-grid {
+  .posture-grid,
+  .method-grid {
     grid-template-columns: 1fr;
   }
 

@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AIegis Benchmarks | Transparent local baseline</title>
+    <meta
+      name="description"
+      content="Transparent AIegis benchmark baseline for guard throughput, boundary decisions, audit overhead, and CLI smoke timing."
+    >
+    <meta property="og:image" content="assets/pg-graph.png">
+    <meta property="og:image:type" content="image/png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="assets/pg-graph.png">
+    <link rel="stylesheet" href="site.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <a class="brand" href="index.html#top" aria-label="AIegis home">
+        <span class="brand-mark">A</span>
+        <span>AIegis</span>
+      </a>
+      <nav class="site-nav" aria-label="Primary navigation">
+        <a href="index.html#problem">Problem</a>
+        <a href="index.html#architecture">Architecture</a>
+        <a href="index.html#guards">Guards</a>
+        <a href="index.html#quick-start">Quick start</a>
+        <a href="benchmarks.html">Benchmarks</a>
+        <a href="index.html#docs">Docs</a>
+      </nav>
+    </header>
+
+    <main id="top" class="benchmark-page">
+      <section class="section-band benchmark-hero">
+        <div>
+          <p class="eyebrow">Transparent benchmark baseline</p>
+          <h1>AIegis guard checks run in-process with millisecond-level local latency.</h1>
+          <p class="lede">
+            This page publishes the first AIegis benchmark baseline with the
+            command, environment, corpus scope, and caveats needed to interpret
+            the numbers. No competitor comparison is implied.
+          </p>
+          <div class="hero-actions">
+            <a class="button primary" href="assets/benchmarks/baseline-2026-05-18.json">Download baseline JSON</a>
+            <a class="button secondary" href="https://github.com/syndicalt/aiegis/blob/master/benchmarks/run.py">View runner</a>
+          </div>
+        </div>
+      </section>
+
+      <section class="section-band">
+        <div class="section-heading compact">
+          <p class="eyebrow">How to read this</p>
+          <h2>Methodology before marketing.</h2>
+          <p>
+            The benchmark suite is local and deterministic. It runs fixed corpus
+            fixtures through AIegis guard functions, policy and MCP boundary
+            checks, JSONL audit operations, and CLI subprocess smoke cases.
+          </p>
+        </div>
+
+        <div class="method-grid">
+          <article>
+            <h3>Command</h3>
+            <pre><code>python benchmarks/run.py --json</code></pre>
+          </article>
+          <article>
+            <h3>Run shape</h3>
+            <p>100 iterations per benchmark. Results report min, median, p95, max, and operations per second.</p>
+          </article>
+          <article>
+            <h3>Environment</h3>
+            <p>Python 3.13.13 on Linux 6.17.0-23-generic, 12th Gen Intel(R) Core(TM) i7-12700H, 20 logical CPUs.</p>
+          </article>
+          <article>
+            <h3>Caveats</h3>
+            <p>CLI timings include Python subprocess startup. The in-process guard and decision numbers are the better signal for embedded use.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="section-band">
+        <div class="section-heading compact">
+          <p class="eyebrow">Summary</p>
+          <h2>Median and p95 latency by benchmark.</h2>
+          <p>
+            Times are milliseconds from the May 18, 2026 local baseline. The
+            raw result is available as <a href="assets/benchmarks/baseline-2026-05-18.json">baseline-2026-05-18.json</a>.
+          </p>
+        </div>
+
+        <div class="benchmark-table-wrap" role="region" aria-label="AIegis benchmark results" tabindex="0">
+          <table class="benchmark-table">
+            <thead>
+              <tr>
+                <th>Surface</th>
+                <th>Benchmark</th>
+                <th>Median</th>
+                <th>p95</th>
+                <th>Ops/sec</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td>Core guard throughput</td><td><code>inspect_html_small</code></td><td>0.701 ms</td><td>1.219 ms</td><td>1,427.0</td></tr>
+              <tr><td>Core guard throughput</td><td><code>inspect_html_large_hidden_content</code></td><td>1.379 ms</td><td>1.689 ms</td><td>725.2</td></tr>
+              <tr><td>Core guard throughput</td><td><code>inspect_email_multipart</code></td><td>2.831 ms</td><td>3.283 ms</td><td>353.2</td></tr>
+              <tr><td>Core guard throughput</td><td><code>inspect_memory_poisoning</code></td><td>0.014 ms</td><td>0.018 ms</td><td>73,155.6</td></tr>
+              <tr><td>Core guard throughput</td><td><code>inspect_document_text</code></td><td>0.009 ms</td><td>0.010 ms</td><td>110,198.9</td></tr>
+              <tr><td>Core guard throughput</td><td><code>inspect_output_secret</code></td><td>0.012 ms</td><td>0.013 ms</td><td>80,775.4</td></tr>
+              <tr><td>Boundary decision latency</td><td><code>evaluate_policy_prompt_block</code></td><td>0.001 ms</td><td>0.002 ms</td><td>693,240.9</td></tr>
+              <tr><td>Boundary decision latency</td><td><code>evaluate_tool_call_sensitive_external</code></td><td>0.003 ms</td><td>0.004 ms</td><td>289,561.3</td></tr>
+              <tr><td>Boundary decision latency</td><td><code>mcp_proxy_allowed_tool_call</code></td><td>0.010 ms</td><td>0.011 ms</td><td>104,838.3</td></tr>
+              <tr><td>Boundary decision latency</td><td><code>mcp_proxy_blocked_tool_call</code></td><td>0.009 ms</td><td>0.010 ms</td><td>117,260.8</td></tr>
+              <tr><td>Boundary decision latency</td><td><code>mcp_proxy_blocked_backend_text_response</code></td><td>0.026 ms</td><td>0.030 ms</td><td>38,497.1</td></tr>
+              <tr><td>Audit overhead</td><td><code>jsonl_audit_append_content_record</code></td><td>0.110 ms</td><td>0.140 ms</td><td>9,111.2</td></tr>
+              <tr><td>Audit overhead</td><td><code>jsonl_audit_append_tool_decision</code></td><td>0.082 ms</td><td>0.092 ms</td><td>12,198.1</td></tr>
+              <tr><td>Audit overhead</td><td><code>verify_audit_log_100_events</code></td><td>64.211 ms</td><td>68.886 ms</td><td>15.6</td></tr>
+              <tr><td>CLI smoke timing</td><td><code>cli_inspect_html</code></td><td>177.567 ms</td><td>190.749 ms</td><td>5.6</td></tr>
+              <tr><td>CLI smoke timing</td><td><code>cli_inspect_email</code></td><td>172.573 ms</td><td>185.394 ms</td><td>5.8</td></tr>
+              <tr><td>CLI smoke timing</td><td><code>cli_inspect_output</code></td><td>164.564 ms</td><td>174.605 ms</td><td>6.1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="section-band narrow">
+        <p class="eyebrow">Interpretation</p>
+        <h2>The useful signal is the shape of the overhead.</h2>
+        <p>
+          HTML and email are the heavier guard paths because they parse markup,
+          MIME structure, hidden content, metadata, and attachments. Policy,
+          tool-firewall, and MCP proxy decisions are much smaller than parser
+          cost in this baseline. Audit appends are low-latency local JSONL
+          writes, while audit-log verification is intentionally separated from
+          the hot path.
+        </p>
+        <p>
+          These measurements are a baseline for repeatable local comparison
+          across AIegis changes. They are not claims about other products or
+          hosted deployments.
+        </p>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <span>AIegis benchmark baseline, May 18, 2026.</span>
+      <a href="index.html">Back to home</a>
+    </footer>
+  </body>
+</html>
