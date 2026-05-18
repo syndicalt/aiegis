@@ -2,11 +2,24 @@ from pathlib import Path
 
 SITE = Path("docs/index.html")
 CSS = Path("docs/site.css")
+SOCIAL_IMAGE = Path("docs/assets/pg-graph.png")
 
 
 def test_github_pages_site_artifacts_exist() -> None:
     assert SITE.exists()
     assert CSS.exists()
+    assert SOCIAL_IMAGE.exists()
+
+
+def test_github_pages_site_uses_pg_social_media_image() -> None:
+    html = SITE.read_text(encoding="utf-8")
+
+    for tag in [
+        '<meta property="og:image" content="assets/pg-graph.png">',
+        '<meta name="twitter:card" content="summary_large_image">',
+        '<meta name="twitter:image" content="assets/pg-graph.png">',
+    ]:
+        assert tag in html
 
 
 def test_github_pages_site_has_required_sections() -> None:
