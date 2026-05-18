@@ -17,6 +17,7 @@ class SourceType(Enum):
     HTML = "html"
     EMAIL = "email"
     MEMORY = "memory"
+    DOCUMENT = "document"
     PDF = "pdf"
     MCP = "mcp"
 

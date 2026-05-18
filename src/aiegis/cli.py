@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from aiegis.audit import AuditRecord
 from aiegis.audit_integrity import verify_audit_log
+from aiegis.document_guard import inspect_document
 from aiegis.egress_guard import EgressPolicy, inspect_output
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
@@ -41,6 +42,14 @@ def main() -> int:
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
     elif args.command == "inspect-memory":
         content = inspect_memory(_read_input(args.path), max_input_chars=args.max_input_chars)
+        _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
+    elif args.command == "inspect-document":
+        content = inspect_document(
+            _read_input_bytes(args.path),
+            filename=Path(args.path).name if args.path is not None else None,
+            media_type=args.media_type,
+            max_input_chars=args.max_input_chars,
+        )
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
     elif args.command == "inspect-output":
         inspection = inspect_output(_read_input(args.path), policy=_egress_policy_from_args(args))
@@ -91,6 +100,21 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     inspect_memory_parser.add_argument("--target", default="local", help="Proposed action target.")
     _add_policy_arguments(inspect_memory_parser)
+
+    inspect_document_parser = subcommands.add_parser(
+        "inspect-document",
+        help="Inspect an untrusted attachment or document.",
+    )
+    inspect_document_parser.add_argument(
+        "path", nargs="?", help="Document path. Reads stdin bytes when omitted."
+    )
+    inspect_document_parser.add_argument(
+        "--media-type",
+        help="Declared document media type, such as text/plain or application/pdf.",
+    )
+    inspect_document_parser.add_argument("--action", default="summarize", help="Proposed action.")
+    inspect_document_parser.add_argument("--target", default="local", help="Proposed target.")
+    _add_policy_arguments(inspect_document_parser)
 
     inspect_output_parser = subcommands.add_parser(
         "inspect-output",
@@ -248,6 +272,12 @@ def _read_input(path: str | None) -> str:
     if path is None:
         return sys.stdin.read()
     return Path(path).read_text(encoding="utf-8")
+
+
+def _read_input_bytes(path: str | None) -> bytes:
+    if path is None:
+        return sys.stdin.buffer.read()
+    return Path(path).read_bytes()
 
 
 def _positive_int(value: str) -> int:
