@@ -213,6 +213,7 @@ aiegis mcp-proxy-stdio \
   --policy-file examples/policies.yaml \
   --policy-profile review_only \
   --audit-log .aiegis/proxy-audit.jsonl \
+  --approval-log .aiegis/approvals.jsonl \
   python backend_mcp_server.py
 ```
 
@@ -220,4 +221,6 @@ Backend commands are passed as an argument vector without a shell. The proxy
 reads client JSON-RPC from stdin, writes filtered JSON-RPC to stdout, and talks
 to the backend process over its stdio pipes. When `--audit-log` is configured,
 blocked and approval-required backend tool-call decisions are appended to the
-local JSONL audit log.
+local JSONL audit log. When `--approval-log` is configured, approval-required
+backend tool calls are also appended to a redacted local JSONL queue and the MCP
+result includes an `approval_id` for the controller or human reviewer.

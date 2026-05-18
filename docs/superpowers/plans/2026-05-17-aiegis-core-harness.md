@@ -795,3 +795,43 @@ Observed: `1 passed`.
 Run: `pytest tests/test_cli.py -k mcp_proxy_stdio_command_passes_audit_log`
 
 Observed: `1 passed`.
+
+### Task 26: HITL Approval Queue
+
+**Files:**
+- Create: `tests/test_approval.py`
+- Create: `src/aiegis/approval.py`
+- Modify: `tests/test_mcp_proxy.py`
+- Modify: `src/aiegis/mcp_proxy.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover redacted approval request serialization, local JSONL pending
+approval append behavior, proxy persistence for approval-required backend tool
+calls, and `mcp-proxy-stdio --approval-log` propagation.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_approval.py tests/test_mcp_proxy.py -k approval tests/test_cli.py -k approval_log`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.approval'`.
+
+- [x] **Step 3: Implement HITL approval queue**
+
+Implemented `ApprovalRequest`, `JsonlApprovalStore`, redacted approval payloads,
+proxy approval persistence for `require_approval` tool-call decisions, and CLI
+approval-log propagation.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_approval.py tests/test_mcp_proxy.py::test_proxy_persists_approval_required_tool_call`
+
+Observed: `3 passed`.
+
+Run: `pytest tests/test_cli.py -k approval_log`
+
+Observed: `1 passed`.

@@ -140,6 +140,10 @@ def _build_parser() -> argparse.ArgumentParser:
         nargs="+",
         help="Backend MCP command and arguments, passed without a shell.",
     )
+    mcp_proxy_stdio_parser.add_argument(
+        "--approval-log",
+        help="Append approval-required backend tool calls to a local JSONL queue.",
+    )
 
     verify_audit_log_parser = subcommands.add_parser(
         "verify-audit-log",
@@ -268,6 +272,7 @@ def _mcp_proxy_config_from_args(
         policy_profile=args.policy_profile,
         audit_log=Path(args.audit_log) if args.audit_log is not None else None,
         audit_include_raw=args.audit_include_raw,
+        approval_log=Path(args.approval_log) if args.approval_log is not None else None,
     )
 
 

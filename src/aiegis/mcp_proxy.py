@@ -7,6 +7,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from aiegis.approval import ApprovalRequest, JsonlApprovalStore
 from aiegis.egress_guard import DEFAULT_EGRESS_POLICY, EgressPolicy, inspect_output
 from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.mcp_server import JSONRPC_VERSION, McpServerConfig, handle_jsonrpc_message
@@ -33,6 +34,15 @@ class ToolCallAuditSink(Protocol):
     ) -> None: ...
 
 
+class ApprovalStore(Protocol):
+    def append_pending(
+        self,
+        decision: ToolCallDecision,
+        *,
+        log_path: Path,
+    ) -> ApprovalRequest: ...
+
+
 @dataclass(frozen=True, slots=True)
 class McpProxyConfig:
     backend: McpBackend
@@ -44,6 +54,8 @@ class McpProxyConfig:
     audit_log: Path | None = None
     audit_include_raw: bool = False
     audit_sink: ToolCallAuditSink | None = None
+    approval_log: Path | None = None
+    approval_store: ApprovalStore | None = None
 
 
 def handle_proxy_jsonrpc_message(
@@ -88,7 +100,8 @@ def _handle_tools_call(
     )
     if decision.status is not DecisionStatus.ALLOW:
         _audit_tool_decision(decision, config=config)
-        return _response(request_id, _tool_decision_result(decision.to_dict()))
+        approval = _append_approval(decision, config=config)
+        return _response(request_id, _tool_decision_result(decision.to_dict(), approval=approval))
 
     backend_response = config.backend.handle_jsonrpc_message(message)
     if backend_response is None:
@@ -153,10 +166,17 @@ def _text_content(result: dict[str, Any]) -> str:
     return "\n".join(text_parts)
 
 
-def _tool_decision_result(decision: dict[str, Any]) -> dict[str, object]:
+def _tool_decision_result(
+    decision: dict[str, Any],
+    *,
+    approval: ApprovalRequest | None = None,
+) -> dict[str, object]:
+    structured_content = decision
+    if approval is not None:
+        structured_content = {**decision, "approval_id": approval.approval_id}
     return {
-        "content": [{"type": "text", "text": json.dumps(decision, sort_keys=True)}],
-        "structuredContent": decision,
+        "content": [{"type": "text", "text": json.dumps(structured_content, sort_keys=True)}],
+        "structuredContent": structured_content,
         "isError": True,
     }
 
@@ -174,6 +194,19 @@ def _audit_tool_decision(decision: ToolCallDecision, *, config: McpProxyConfig) 
         log_path=config.audit_log,
         policy_profile=config.policy_profile,
     )
+
+
+def _append_approval(
+    decision: ToolCallDecision,
+    *,
+    config: McpProxyConfig,
+) -> ApprovalRequest | None:
+    if decision.status is not DecisionStatus.REQUIRE_APPROVAL:
+        return None
+    if config.approval_log is None:
+        return None
+    store = config.approval_store if config.approval_store is not None else JsonlApprovalStore()
+    return store.append_pending(decision, log_path=config.approval_log)
 
 
 def _response(request_id: object, result: dict[str, object]) -> dict[str, object]:

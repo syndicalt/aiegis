@@ -129,6 +129,68 @@ def test_proxy_audits_blocked_backend_tool_call() -> None:
     ]
 
 
+def test_proxy_persists_approval_required_tool_call() -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeApprovalStore:
+        def append_pending(self, decision, *, log_path):
+            calls.append(
+                {
+                    "status": decision.status.value,
+                    "tool_name": decision.tool.name,
+                    "log_path": log_path,
+                }
+            )
+
+            class Request:
+                approval_id = "approval-1"
+
+                def to_dict(self):
+                    return {
+                        "approval_id": self.approval_id,
+                        "status": "pending",
+                        "decision": decision.to_dict(),
+                    }
+
+            return Request()
+
+    backend = RecordingBackend({"jsonrpc": "2.0", "id": "call", "result": {}})
+
+    response = handle_proxy_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call",
+            "method": "tools/call",
+            "params": {
+                "name": "send_email",
+                "arguments": {"to": "ops@example.test"},
+            },
+        },
+        config=McpProxyConfig(
+            backend=backend,
+            tool_call_policy=ToolCallPolicy(
+                blocked_tools=(),
+                approval_required_tools=("send_email",),
+                sensitive_argument_keys=(),
+            ),
+            approval_log=Path(".aiegis/approvals.jsonl"),
+            approval_store=FakeApprovalStore(),
+        ),
+    )
+
+    assert backend.messages == []
+    assert response["result"]["isError"] is True
+    assert response["result"]["structuredContent"]["status"] == "require_approval"
+    assert response["result"]["structuredContent"]["approval_id"] == "approval-1"
+    assert calls == [
+        {
+            "status": "require_approval",
+            "tool_name": "send_email",
+            "log_path": Path(".aiegis/approvals.jsonl"),
+        }
+    ]
+
+
 def test_proxy_forwards_allowed_backend_tool_call() -> None:
     backend_response = {
         "jsonrpc": "2.0",
