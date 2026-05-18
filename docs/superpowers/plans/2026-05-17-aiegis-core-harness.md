@@ -298,6 +298,38 @@ Run: `pytest tests/test_mcp_server.py tests/test_cli.py tests/test_jsonl_audit_s
 
 Observed: `26 passed`.
 
+### Task 15: Minimized And Redacted JSONL Audits
+
+**Files:**
+- Modify: `tests/test_jsonl_audit_sink.py`
+- Modify: `src/aiegis/jsonl_audit_sink.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover omitting raw content text and quarantined segment bodies from local
+content audit payloads, and redacting sensitive tool argument values from local
+tool-call audit payloads.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_jsonl_audit_sink.py -q`
+
+Observed: failed because raw content text and raw `token` values were present in
+JSONL payloads.
+
+- [x] **Step 3: Implement minimized/redacted JSONL payloads**
+
+Changed `JsonlAuditSink` to emit minimized content payloads with counts and
+finding metadata instead of raw bodies, and to redact sensitive tool argument
+values by key before writing JSONL.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_jsonl_audit_sink.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: `28 passed`.
+
 ### Task 13: Configurable Tool Firewall Profiles
 
 **Files:**

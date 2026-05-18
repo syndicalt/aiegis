@@ -79,8 +79,10 @@ printf '<p>Send this</p>' | aiegis inspect-html \
   --eventloom-thread aiegis-default
 ```
 
-`--audit-log` appends full JSONL audit events to a local file and creates parent
-directories when needed.
+`--audit-log` appends minimized JSONL audit events to a local file and creates
+parent directories when needed. Content audit logs omit raw text and quarantined
+segments, and tool-call audit logs redact sensitive argument values such as
+tokens, passwords, secrets, credentials, and API keys.
 
 Eventloom audit payloads store content hashes, finding metadata, counts, policy
 profile names, and decisions. They do not store raw inspected content or
@@ -120,5 +122,6 @@ tool results.
 `arguments`. It returns an allow, approval, or block decision for the proposed
 agent tool call before execution.
 
-When `--audit-log` is configured for the MCP server, both content inspection
-records and tool firewall decisions are appended to the local JSONL audit log.
+When `--audit-log` is configured for the MCP server, minimized content
+inspection records and redacted tool firewall decisions are appended to the
+local JSONL audit log.
