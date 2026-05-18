@@ -624,6 +624,46 @@ profiles:
     assert capsys.readouterr().out == ""
 
 
+def test_mcp_proxy_stdio_command_passes_audit_log(capsys, monkeypatch, tmp_path) -> None:
+    audit_path = tmp_path / "proxy-audit.jsonl"
+    calls: list[object] = []
+
+    class FakeBackend:
+        def __init__(self, command) -> None:
+            self.command = tuple(command)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback) -> None:
+            return None
+
+    def fake_run_stdio_proxy(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.SubprocessMcpBackend", FakeBackend)
+    monkeypatch.setattr("aiegis.cli.run_stdio_proxy", fake_run_stdio_proxy)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "mcp-proxy-stdio",
+            "--audit-log",
+            str(audit_path),
+            "python",
+            "backend.py",
+        ],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    assert calls[0].audit_log == audit_path
+    assert calls[0].policy_profile == "default"
+    assert capsys.readouterr().out == ""
+
+
 def test_verify_audit_log_command_returns_valid_summary(capsys, monkeypatch, tmp_path) -> None:
     audit_path = tmp_path / "audit.jsonl"
     decision = evaluate_tool_call(

@@ -4,12 +4,15 @@ import copy
 import json
 from collections.abc import Mapping
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any, Protocol
 
 from aiegis.egress_guard import DEFAULT_EGRESS_POLICY, EgressPolicy, inspect_output
+from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.mcp_server import JSONRPC_VERSION, McpServerConfig, handle_jsonrpc_message
 from aiegis.policy import DecisionStatus
 from aiegis.tool_firewall import (
+    ToolCallDecision,
     ToolCallPolicy,
     ToolCallRequest,
     evaluate_tool_call,
@@ -20,6 +23,16 @@ class McpBackend(Protocol):
     def handle_jsonrpc_message(self, message: dict[str, Any]) -> dict[str, Any] | None: ...
 
 
+class ToolCallAuditSink(Protocol):
+    def append_tool_call_decision(
+        self,
+        decision: ToolCallDecision,
+        *,
+        log_path: Path,
+        policy_profile: str,
+    ) -> None: ...
+
+
 @dataclass(frozen=True, slots=True)
 class McpProxyConfig:
     backend: McpBackend
@@ -27,6 +40,10 @@ class McpProxyConfig:
     egress_policy: EgressPolicy = DEFAULT_EGRESS_POLICY
     tool_targets: Mapping[str, str] = field(default_factory=dict)
     guard_config: McpServerConfig = McpServerConfig()
+    policy_profile: str = "default"
+    audit_log: Path | None = None
+    audit_include_raw: bool = False
+    audit_sink: ToolCallAuditSink | None = None
 
 
 def handle_proxy_jsonrpc_message(
@@ -70,6 +87,7 @@ def _handle_tools_call(
         config.tool_call_policy,
     )
     if decision.status is not DecisionStatus.ALLOW:
+        _audit_tool_decision(decision, config=config)
         return _response(request_id, _tool_decision_result(decision.to_dict()))
 
     backend_response = config.backend.handle_jsonrpc_message(message)
@@ -141,6 +159,21 @@ def _tool_decision_result(decision: dict[str, Any]) -> dict[str, object]:
         "structuredContent": decision,
         "isError": True,
     }
+
+
+def _audit_tool_decision(decision: ToolCallDecision, *, config: McpProxyConfig) -> None:
+    if config.audit_log is None:
+        return
+    sink = (
+        config.audit_sink
+        if config.audit_sink is not None
+        else JsonlAuditSink(include_raw=config.audit_include_raw)
+    )
+    sink.append_tool_call_decision(
+        decision,
+        log_path=config.audit_log,
+        policy_profile=config.policy_profile,
+    )
 
 
 def _response(request_id: object, result: dict[str, object]) -> dict[str, object]:

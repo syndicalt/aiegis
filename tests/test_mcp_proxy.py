@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 from typing import Any
 
 from aiegis.egress_guard import EgressPolicy
@@ -77,6 +78,54 @@ def test_proxy_blocks_backend_tool_call_before_forwarding() -> None:
     assert result["structuredContent"]["tool"]["name"] == "filesystem.delete"
     assert result["content"] == [
         {"type": "text", "text": json.dumps(result["structuredContent"], sort_keys=True)}
+    ]
+
+
+def test_proxy_audits_blocked_backend_tool_call() -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeAuditSink:
+        def append_tool_call_decision(self, decision, *, log_path, policy_profile) -> None:
+            calls.append(
+                {
+                    "status": decision.status.value,
+                    "tool_name": decision.tool.name,
+                    "log_path": log_path,
+                    "policy_profile": policy_profile,
+                }
+            )
+
+    response = handle_proxy_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call",
+            "method": "tools/call",
+            "params": {
+                "name": "filesystem.delete",
+                "arguments": {"path": "/tmp/important"},
+            },
+        },
+        config=McpProxyConfig(
+            backend=RecordingBackend(None),
+            tool_call_policy=ToolCallPolicy(
+                blocked_tools=("filesystem.delete",),
+                approval_required_tools=(),
+                sensitive_argument_keys=(),
+            ),
+            audit_log=Path(".aiegis/proxy-audit.jsonl"),
+            audit_sink=FakeAuditSink(),
+            policy_profile="strict",
+        ),
+    )
+
+    assert response["result"]["structuredContent"]["status"] == "block"
+    assert calls == [
+        {
+            "status": "block",
+            "tool_name": "filesystem.delete",
+            "log_path": Path(".aiegis/proxy-audit.jsonl"),
+            "policy_profile": "strict",
+        }
     ]
 
 

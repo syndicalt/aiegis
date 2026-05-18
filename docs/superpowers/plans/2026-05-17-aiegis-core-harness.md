@@ -758,3 +758,40 @@ failures.
 Run: `pytest tests/test_document_guard.py tests/test_cli.py -k inspect_document`
 
 Observed: `6 passed`.
+
+### Task 25: MCP Proxy Tool-Decision Audits
+
+**Files:**
+- Modify: `tests/test_mcp_proxy.py`
+- Modify: `src/aiegis/mcp_proxy.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover appending local JSONL audit records for blocked backend tool calls
+and propagating `mcp-proxy-stdio --audit-log` into `McpProxyConfig`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_mcp_proxy.py -k audit tests/test_cli.py -k mcp_proxy_stdio_command_passes_audit_log`
+
+Observed: failed because `McpProxyConfig` did not expose `audit_log`.
+
+- [x] **Step 3: Implement proxy audit wiring**
+
+Added proxy audit configuration fields, a tool-call audit sink protocol,
+default `JsonlAuditSink` append behavior for denied backend tool calls, and CLI
+audit flag propagation into the proxy config.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_proxy.py::test_proxy_audits_blocked_backend_tool_call`
+
+Observed: `1 passed`.
+
+Run: `pytest tests/test_cli.py -k mcp_proxy_stdio_command_passes_audit_log`
+
+Observed: `1 passed`.

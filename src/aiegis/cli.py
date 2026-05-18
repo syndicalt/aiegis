@@ -265,6 +265,9 @@ def _mcp_proxy_config_from_args(
         tool_call_policy=loaded_profile.tool_call_policy,
         egress_policy=loaded_profile.egress_policy,
         guard_config=_mcp_config_from_loaded_profile(args, loaded_profile),
+        policy_profile=args.policy_profile,
+        audit_log=Path(args.audit_log) if args.audit_log is not None else None,
+        audit_include_raw=args.audit_include_raw,
     )
 
 

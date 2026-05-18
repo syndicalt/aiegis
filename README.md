@@ -212,9 +212,12 @@ Run the stdio proxy in front of a backend MCP command:
 aiegis mcp-proxy-stdio \
   --policy-file examples/policies.yaml \
   --policy-profile review_only \
+  --audit-log .aiegis/proxy-audit.jsonl \
   python backend_mcp_server.py
 ```
 
 Backend commands are passed as an argument vector without a shell. The proxy
 reads client JSON-RPC from stdin, writes filtered JSON-RPC to stdout, and talks
-to the backend process over its stdio pipes.
+to the backend process over its stdio pipes. When `--audit-log` is configured,
+blocked and approval-required backend tool-call decisions are appended to the
+local JSONL audit log.
