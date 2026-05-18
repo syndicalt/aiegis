@@ -8,6 +8,7 @@ from uuid import uuid4
 
 from aiegis.audit import AuditRecord
 from aiegis.audit_integrity import verify_audit_log
+from aiegis.egress_guard import inspect_output
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
@@ -15,7 +16,7 @@ from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS
 from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.mcp_server import McpServerConfig, run_stdio_server
 from aiegis.models import GuardedContent
-from aiegis.policy import ActionRequest, Policy, evaluate_policy
+from aiegis.policy import ActionRequest, DecisionStatus, Policy, evaluate_policy
 from aiegis.policy_profiles import LoadedPolicyProfile, load_policy_profile
 
 _DEFAULT_POLICY = Policy(
@@ -37,6 +38,11 @@ def main() -> int:
         content = inspect_email(_read_input(args.path), max_input_chars=args.max_input_chars)
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
         return 0
+
+    if args.command == "inspect-output":
+        inspection = inspect_output(_read_input(args.path))
+        print(json.dumps(inspection.to_dict(), sort_keys=True))
+        return 0 if inspection.status is DecisionStatus.ALLOW else 1
 
     if args.command == "mcp-stdio":
         run_stdio_server(config=_mcp_config_from_args(args))
@@ -68,6 +74,14 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect_email_parser.add_argument("--action", default="summarize", help="Proposed action name.")
     inspect_email_parser.add_argument("--target", default="local", help="Proposed action target.")
     _add_policy_arguments(inspect_email_parser)
+
+    inspect_output_parser = subcommands.add_parser(
+        "inspect-output",
+        help="Inspect outbound text before returning or sending it.",
+    )
+    inspect_output_parser.add_argument(
+        "path", nargs="?", help="Output text file path. Reads stdin when omitted."
+    )
 
     mcp_stdio_parser = subcommands.add_parser(
         "mcp-stdio", help="Run the AIegis MCP server over stdio."

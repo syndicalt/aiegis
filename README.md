@@ -40,6 +40,15 @@ Inspect email from stdin:
 printf 'From: sender@example.test\nSubject: Hi\n\nBody' | aiegis inspect-email
 ```
 
+Inspect outbound text before returning or sending it:
+
+```bash
+printf 'api_key = sk-test-1234567890abcdef' | aiegis inspect-output
+```
+
+Output inspection blocks secret-like material and returns redacted text. Finding
+evidence names the matched pattern, not the secret value.
+
 Use a named policy profile:
 
 ```bash
@@ -141,6 +150,7 @@ The server exposes:
 - `aiegis.inspect_html`
 - `aiegis.inspect_email`
 - `aiegis.evaluate_tool_call`
+- `aiegis.inspect_output`
 
 The inspection tools accept `content`, optional `action`, and optional `target`
 arguments. They return the same audit structure as the CLI in
@@ -150,6 +160,9 @@ tool results.
 `aiegis.evaluate_tool_call` accepts `tool_name`, optional `target`, and optional
 `arguments`. It returns an allow, approval, or block decision for the proposed
 agent tool call before execution.
+
+`aiegis.inspect_output` accepts `content` and returns an allow or block decision
+with redacted text for outbound responses.
 
 When `--audit-log` is configured for the MCP server, minimized content
 inspection records and redacted tool firewall decisions are appended to the

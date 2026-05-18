@@ -368,6 +368,41 @@ Run: `pytest tests/test_html_guard.py tests/test_email_guard.py tests/test_cli.p
 
 Observed: `44 passed`.
 
+### Task 19: Output Egress Guard
+
+**Files:**
+- Create: `tests/test_egress_guard.py`
+- Create: `src/aiegis/egress_guard.py`
+- Modify: `tests/test_cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover allowing ordinary outbound text, blocking and redacting secret-like
+output, avoiding raw secret values in serialized inspection results, CLI
+`inspect-output`, and MCP `aiegis.inspect_output`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_egress_guard.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.egress_guard'`.
+
+- [x] **Step 3: Implement egress inspection**
+
+Added deterministic egress scanning for private key blocks, common token
+prefixes, and secret-like assignments. The guard returns redacted text, finding
+metadata without raw secret evidence, and a block/allow decision.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_egress_guard.py tests/test_cli.py tests/test_mcp_server.py -q`
+
+Observed: `38 passed`.
+
 ### Task 14: Local JSONL Audit Sink
 
 **Files:**

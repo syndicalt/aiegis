@@ -86,6 +86,19 @@ def test_inspect_email_reads_stdin_and_writes_json(capsys, monkeypatch) -> None:
     assert output["decision"]["status"] == "block"
 
 
+def test_inspect_output_blocks_and_redacts_secret_like_text(capsys, monkeypatch) -> None:
+    monkeypatch.setattr("sys.argv", ["aiegis", "inspect-output"])
+    monkeypatch.setattr("sys.stdin", _TextInput("Use api_key = sk-test-1234567890abcdef"))
+
+    exit_code = main()
+
+    assert exit_code == 1
+    output = json.loads(capsys.readouterr().out)
+    assert output["status"] == "block"
+    assert output["redacted_text"] == "Use api_key = [REDACTED]"
+    assert "sk-test-1234567890abcdef" not in repr(output)
+
+
 def test_inspect_html_uses_named_policy_profile(capsys, monkeypatch, tmp_path) -> None:
     policy_path = tmp_path / "policies.yaml"
     policy_path.write_text(

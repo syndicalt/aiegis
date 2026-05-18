@@ -8,13 +8,14 @@ from typing import Any, Protocol, TextIO
 from uuid import uuid4
 
 from aiegis.audit import AuditRecord
+from aiegis.egress_guard import inspect_output
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
 from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS
 from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.models import GuardedContent
-from aiegis.policy import ActionRequest, Policy, evaluate_policy
+from aiegis.policy import ActionRequest, DecisionStatus, Policy, evaluate_policy
 from aiegis.tool_firewall import (
     ToolCallDecision,
     ToolCallPolicy,
@@ -50,6 +51,13 @@ _TOOL_CALL_INPUT_SCHEMA: dict[str, object] = {
         "target": {"type": "string", "default": "local"},
         "arguments": {"type": "object", "default": {}},
     },
+}
+
+_OUTPUT_INSPECTION_INPUT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["content"],
+    "properties": {"content": {"type": "string"}},
 }
 
 
@@ -178,6 +186,14 @@ def _tool_definitions() -> list[dict[str, object]]:
             ),
             "inputSchema": _TOOL_CALL_INPUT_SCHEMA,
         },
+        {
+            "name": "aiegis.inspect_output",
+            "description": (
+                "Inspect outbound text for secret-like material before returning "
+                "or sending it."
+            ),
+            "inputSchema": _OUTPUT_INSPECTION_INPUT_SCHEMA,
+        },
     ]
 
 
@@ -193,6 +209,8 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
 
     if name == "aiegis.evaluate_tool_call":
         return _evaluate_tool_call(arguments, config=config)
+    if name == "aiegis.inspect_output":
+        return _inspect_output(arguments)
 
     content = arguments.get("content")
     if not isinstance(content, str):
@@ -267,6 +285,20 @@ def _evaluate_tool_call(
         "content": [{"type": "text", "text": json.dumps(decision_dict, sort_keys=True)}],
         "structuredContent": decision_dict,
         "isError": False,
+    }
+
+
+def _inspect_output(arguments: dict[object, object]) -> dict[str, object]:
+    content = arguments.get("content")
+    if not isinstance(content, str):
+        raise ValueError("Tool argument 'content' must be a string.")
+
+    inspection = inspect_output(content)
+    inspection_dict = inspection.to_dict()
+    return {
+        "content": [{"type": "text", "text": json.dumps(inspection_dict, sort_keys=True)}],
+        "structuredContent": inspection_dict,
+        "isError": inspection.status is DecisionStatus.BLOCK,
     }
 
 

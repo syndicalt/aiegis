@@ -42,6 +42,7 @@ def test_tools_list_exposes_guard_tools_in_stable_order() -> None:
         "aiegis.inspect_html",
         "aiegis.inspect_email",
         "aiegis.evaluate_tool_call",
+        "aiegis.inspect_output",
     ]
     assert tools[0]["inputSchema"] == {
         "type": "object",
@@ -62,6 +63,12 @@ def test_tools_list_exposes_guard_tools_in_stable_order() -> None:
             "target": {"type": "string", "default": "local"},
             "arguments": {"type": "object", "default": {}},
         },
+    }
+    assert tools[3]["inputSchema"] == {
+        "type": "object",
+        "additionalProperties": False,
+        "required": ["content"],
+        "properties": {"content": {"type": "string"}},
     }
 
 
@@ -286,6 +293,28 @@ def test_tools_call_evaluates_proposed_tool_invocation() -> None:
     }
 
 
+def test_tools_call_inspect_output_blocks_and_redacts_secret_like_text() -> None:
+    response = handle_jsonrpc_message(
+        {
+            "jsonrpc": "2.0",
+            "id": "call-output",
+            "method": "tools/call",
+            "params": {
+                "name": "aiegis.inspect_output",
+                "arguments": {"content": "Use api_key = sk-test-1234567890abcdef"},
+            },
+        }
+    )
+
+    result = response["result"]
+    inspection = result["structuredContent"]
+    assert result["isError"] is True
+    assert result["content"] == [{"type": "text", "text": json.dumps(inspection, sort_keys=True)}]
+    assert inspection["status"] == "block"
+    assert inspection["redacted_text"] == "Use api_key = [REDACTED]"
+    assert "sk-test-1234567890abcdef" not in repr(inspection)
+
+
 def test_tools_call_evaluates_proposed_tool_with_configured_firewall() -> None:
     response = handle_jsonrpc_message(
         {
@@ -431,6 +460,7 @@ def test_stdio_server_skips_notifications_and_writes_responses() -> None:
         "aiegis.inspect_html",
         "aiegis.inspect_email",
         "aiegis.evaluate_tool_call",
+        "aiegis.inspect_output",
     ]
 
 
