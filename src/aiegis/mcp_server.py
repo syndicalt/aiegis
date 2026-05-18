@@ -13,6 +13,11 @@ from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
+from aiegis.tool_firewall import (
+    ToolCallPolicy,
+    ToolCallRequest,
+    evaluate_tool_call,
+)
 
 MCP_PROTOCOL_VERSION = "2025-11-25"
 JSONRPC_VERSION = "2.0"
@@ -33,6 +38,17 @@ _INSPECTION_INPUT_SCHEMA: dict[str, object] = {
     },
 }
 
+_TOOL_CALL_INPUT_SCHEMA: dict[str, object] = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["tool_name"],
+    "properties": {
+        "tool_name": {"type": "string"},
+        "target": {"type": "string", "default": "local"},
+        "arguments": {"type": "object", "default": {}},
+    },
+}
+
 
 class EventloomSinkProtocol(Protocol):
     def append(
@@ -48,6 +64,7 @@ class EventloomSinkProtocol(Protocol):
 @dataclass(frozen=True, slots=True)
 class McpServerConfig:
     policy: Policy = _DEFAULT_POLICY
+    tool_call_policy: ToolCallPolicy = ToolCallPolicy()
     policy_profile: str = "default"
     eventloom_log: Path | None = None
     eventloom_thread: str = "default"
@@ -128,6 +145,14 @@ def _tool_definitions() -> list[dict[str, object]]:
             ),
             "inputSchema": _INSPECTION_INPUT_SCHEMA,
         },
+        {
+            "name": "aiegis.evaluate_tool_call",
+            "description": (
+                "Evaluate a proposed agent tool invocation before execution and return "
+                "an allow, approval, or block decision."
+            ),
+            "inputSchema": _TOOL_CALL_INPUT_SCHEMA,
+        },
     ]
 
 
@@ -140,6 +165,9 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
         raise ValueError("Tool name is required.")
     if not isinstance(arguments, dict):
         raise ValueError("Tool arguments must be an object.")
+
+    if name == "aiegis.evaluate_tool_call":
+        return _evaluate_tool_call(arguments, config=config)
 
     content = arguments.get("content")
     if not isinstance(content, str):
@@ -172,6 +200,28 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
     }
 
 
+def _evaluate_tool_call(
+    arguments: dict[object, object],
+    *,
+    config: McpServerConfig,
+) -> dict[str, object]:
+    tool_name = _required_string(arguments, "tool_name")
+    target = _optional_string(arguments, "target", default="local")
+    tool_arguments = arguments.get("arguments", {})
+    if not isinstance(tool_arguments, dict):
+        raise ValueError("Tool argument 'arguments' must be an object.")
+
+    decision = evaluate_tool_call(
+        ToolCallRequest(name=tool_name, target=target, arguments=dict(tool_arguments)),
+        config.tool_call_policy,
+    ).to_dict()
+    return {
+        "content": [{"type": "text", "text": json.dumps(decision, sort_keys=True)}],
+        "structuredContent": decision,
+        "isError": False,
+    }
+
+
 def _audit_guarded_content(
     content: GuardedContent,
     *,
@@ -189,6 +239,13 @@ def _audit_guarded_content(
 
 def _optional_string(arguments: dict[object, object], key: str, *, default: str) -> str:
     value = arguments.get(key, default)
+    if not isinstance(value, str):
+        raise ValueError(f"Tool argument '{key}' must be a string.")
+    return value
+
+
+def _required_string(arguments: dict[object, object], key: str) -> str:
+    value = arguments.get(key)
     if not isinstance(value, str):
         raise ValueError(f"Tool argument '{key}' must be a string.")
     return value

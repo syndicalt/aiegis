@@ -295,3 +295,36 @@ onto `aiegis mcp-stdio`.
 Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
 
 Observed: `18 passed`.
+
+### Task 12: Tool-Call Policy Firewall
+
+**Files:**
+- Create: `tests/test_tool_firewall.py`
+- Create: `src/aiegis/tool_firewall.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover blocked tools, secret-bearing external tool calls, approval-required
+tools, external target approval, low-risk local allow decisions, MCP tool
+discovery, and MCP `tools/call` behavior for `aiegis.evaluate_tool_call`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_tool_firewall.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.tool_firewall'`.
+
+- [x] **Step 3: Implement firewall evaluator and MCP tool**
+
+Implemented `ToolCallRequest`, `ToolCallPolicy`, `ToolCallDecision`, deterministic
+tool-call evaluation, and exposed the evaluator through MCP as
+`aiegis.evaluate_tool_call`.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_server.py tests/test_tool_firewall.py -q`
+
+Observed: `15 passed`.

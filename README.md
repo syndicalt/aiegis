@@ -95,7 +95,13 @@ The server exposes:
 
 - `aiegis.inspect_html`
 - `aiegis.inspect_email`
+- `aiegis.evaluate_tool_call`
 
-Both tools accept `content`, optional `action`, and optional `target` arguments.
-They return the same audit structure as the CLI in `structuredContent`, with a
-JSON text copy for MCP clients that only render text tool results.
+The inspection tools accept `content`, optional `action`, and optional `target`
+arguments. They return the same audit structure as the CLI in
+`structuredContent`, with a JSON text copy for MCP clients that only render text
+tool results.
+
+`aiegis.evaluate_tool_call` accepts `tool_name`, optional `target`, and optional
+`arguments`. It returns an allow, approval, or block decision for the proposed
+agent tool call before execution.
