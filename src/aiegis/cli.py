@@ -9,6 +9,7 @@ from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
 from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
+from aiegis.mcp_server import run_stdio_server
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
 from aiegis.policy_profiles import load_policy_profile
@@ -33,6 +34,10 @@ def main() -> int:
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
         return 0
 
+    if args.command == "mcp-stdio":
+        run_stdio_server()
+        return 0
+
     parser.print_help(sys.stderr)
     return 2
 
@@ -54,6 +59,8 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect_email_parser.add_argument("--action", default="summarize", help="Proposed action name.")
     inspect_email_parser.add_argument("--target", default="local", help="Proposed action target.")
     _add_policy_arguments(inspect_email_parser)
+
+    subcommands.add_parser("mcp-stdio", help="Run the AIegis MCP server over stdio.")
 
     return parser
 

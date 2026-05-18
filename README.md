@@ -11,6 +11,7 @@ The first build slice provides:
 - deterministic policy decisions for risky actions
 - audit-ready JSON records
 - a small CLI for inspecting HTML and email input
+- an MCP stdio server exposing guarded inspection tools to agents
 
 The project standard is production code only: no throwaway hacks, no speculative
 abstractions, and every behavioral change starts with a failing test. The test suite
@@ -71,3 +72,20 @@ printf '<p>Send this</p>' | aiegis inspect-html \
 Eventloom audit payloads store content hashes, finding metadata, counts, policy
 profile names, and decisions. They do not store raw inspected content or
 quarantined segments.
+
+## MCP Server
+
+Run AIegis as a local MCP stdio server:
+
+```bash
+aiegis mcp-stdio
+```
+
+The server exposes:
+
+- `aiegis.inspect_html`
+- `aiegis.inspect_email`
+
+Both tools accept `content`, optional `action`, and optional `target` arguments.
+They return the same audit structure as the CLI in `structuredContent`, with a
+JSON text copy for MCP clients that only render text tool results.

@@ -198,6 +198,39 @@ Run: `pytest tests/test_policy_profiles.py tests/test_cli.py -q`
 
 Observed: `10 passed`.
 
+### Task 10: MCP Stdio Guard Server
+
+**Files:**
+- Create: `tests/test_mcp_server.py`
+- Create: `src/aiegis/mcp_server.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover MCP `initialize`, `tools/list`, `tools/call` for HTML and email
+inspection, unknown-tool JSON-RPC errors, stdio notification handling, parse-error
+handling, and CLI wiring through `aiegis mcp-stdio`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_mcp_server.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.mcp_server'`.
+
+- [x] **Step 3: Implement minimal MCP stdio server**
+
+Implemented a stdlib JSON-RPC stdio server exposing `aiegis.inspect_html` and
+`aiegis.inspect_email`. Tool calls delegate to existing ingestion guards and
+policy evaluation, returning both `structuredContent` and a JSON text result.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_server.py tests/test_cli.py -q`
+
+Observed: `15 passed`.
+
 ### Task 9: Zaxy Eventloom Audit Sink
 
 **Files:**

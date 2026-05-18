@@ -171,6 +171,22 @@ def test_cli_without_command_returns_usage_error(capsys, monkeypatch) -> None:
     assert "usage: aiegis" in capsys.readouterr().err
 
 
+def test_mcp_stdio_command_runs_server(capsys, monkeypatch) -> None:
+    calls: list[str] = []
+
+    def fake_run_stdio_server() -> None:
+        calls.append("ran")
+
+    monkeypatch.setattr("aiegis.cli.run_stdio_server", fake_run_stdio_server)
+    monkeypatch.setattr("sys.argv", ["aiegis", "mcp-stdio"])
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert calls == ["ran"]
+    assert capsys.readouterr().out == ""
+
+
 class _TextInput:
     def __init__(self, text: str) -> None:
         self._text = text
