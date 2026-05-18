@@ -27,13 +27,20 @@ def test_github_pages_site_links_to_project_docs() -> None:
     html = SITE.read_text(encoding="utf-8")
 
     for link in [
-        "../README.md",
-        "deployment-runbook.md",
-        "security-assumptions.md",
-        "production-readiness.md",
-        "../examples/policies.yaml",
+        "https://github.com/syndicalt/aiegis/blob/master/README.md",
+        "https://github.com/syndicalt/aiegis/blob/master/docs/deployment-runbook.md",
+        "https://github.com/syndicalt/aiegis/blob/master/docs/security-assumptions.md",
+        "https://github.com/syndicalt/aiegis/blob/master/docs/production-readiness.md",
+        "https://github.com/syndicalt/aiegis/blob/master/examples/policies.yaml",
     ]:
         assert link in html
+
+
+def test_github_pages_site_does_not_link_outside_pages_root() -> None:
+    html = SITE.read_text(encoding="utf-8")
+
+    assert 'href="../README.md"' not in html
+    assert 'href="../examples/policies.yaml"' not in html
 
 
 def test_github_pages_site_uses_concrete_security_language() -> None:
