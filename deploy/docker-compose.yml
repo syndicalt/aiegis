@@ -1,0 +1,21 @@
+services:
+  aiegis:
+    build:
+      context: ..
+    image: aiegis:local
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+      - /var/lib/aiegis
+    volumes:
+      - ./policies:/etc/aiegis:ro
+    command:
+      - mcp-stdio
+      - --policy-file
+      - /etc/aiegis/policies.yaml
+      - --policy-profile
+      - default
+      - --audit-log
+      - /var/lib/aiegis/audit.jsonl

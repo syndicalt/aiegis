@@ -7,7 +7,7 @@ local harness into an operational production deployment.
   - GitHub Actions runs the release check on Python 3.11, 3.12, and 3.13.
   - `scripts/release-check.sh` runs coverage, lint, type checks, package build,
     and distribution metadata checks.
-- [ ] Container runtime
+- [x] Container runtime
   - Provide a minimal runtime image for the CLI and MCP stdio entrypoints.
   - Run as a non-root user and keep mutable audit/approval data in mounted
     volumes.

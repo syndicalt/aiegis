@@ -30,5 +30,27 @@ def test_production_readiness_plan_tracks_ci_slice() -> None:
     plan = Path("docs/production-readiness.md").read_text(encoding="utf-8")
 
     assert "- [x] CI quality gate" in plan
-    assert "- [ ] Container runtime" in plan
+    assert "- [x] Container runtime" in plan
     assert "- [ ] Red-team regression corpus" in plan
+
+
+def test_dockerfile_runs_as_non_root_mcp_runtime() -> None:
+    dockerfile = Path("Dockerfile").read_text(encoding="utf-8")
+
+    assert "FROM python:3.13-slim" in dockerfile
+    assert "useradd" in dockerfile
+    assert "USER aiegis" in dockerfile
+    assert "VOLUME [\"/var/lib/aiegis\"]" in dockerfile
+    assert 'ENTRYPOINT ["aiegis"]' in dockerfile
+    assert 'CMD ["mcp-stdio"]' in dockerfile
+
+
+def test_compose_example_mounts_audit_and_policy_data() -> None:
+    compose = yaml.safe_load(Path("deploy/docker-compose.yml").read_text(encoding="utf-8"))
+
+    service = compose["services"]["aiegis"]
+    assert service["build"]["context"] == ".."
+    assert service["read_only"] is True
+    assert service["security_opt"] == ["no-new-privileges:true"]
+    assert "/var/lib/aiegis" in service["tmpfs"]
+    assert "./policies:/etc/aiegis:ro" in service["volumes"]
