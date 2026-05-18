@@ -14,9 +14,9 @@ local harness into an operational production deployment.
 - [x] Red-team regression corpus
   - Add fixture-driven tests for known HTML, email, memory, document, tool, and
     egress attack patterns.
-- [ ] Deployment runbook
+- [x] Deployment runbook
   - Document local, sidecar, and service deployment modes with policy, audit,
     approval, and sandbox guidance.
-- [ ] Security assumptions
+- [x] Security assumptions
   - Document trust boundaries, unsupported cases, operational responsibilities,
     and failure modes.

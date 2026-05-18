@@ -32,6 +32,8 @@ def test_production_readiness_plan_tracks_ci_slice() -> None:
     assert "- [x] CI quality gate" in plan
     assert "- [x] Container runtime" in plan
     assert "- [x] Red-team regression corpus" in plan
+    assert "- [x] Deployment runbook" in plan
+    assert "- [x] Security assumptions" in plan
 
 
 def test_dockerfile_runs_as_non_root_mcp_runtime() -> None:
@@ -54,3 +56,25 @@ def test_compose_example_mounts_audit_and_policy_data() -> None:
     assert service["security_opt"] == ["no-new-privileges:true"]
     assert "/var/lib/aiegis" in service["tmpfs"]
     assert "./policies:/etc/aiegis:ro" in service["volumes"]
+
+
+def test_deployment_runbook_covers_required_operational_modes() -> None:
+    runbook = Path("docs/deployment-runbook.md").read_text(encoding="utf-8")
+
+    assert "Local CLI" in runbook
+    assert "MCP Stdio Server" in runbook
+    assert "MCP Stdio Proxy" in runbook
+    assert "Container Runtime" in runbook
+    assert "--audit-log" in runbook
+    assert "--approval-log" in runbook
+    assert "verify-audit-log" in runbook
+
+
+def test_security_assumptions_document_covers_trust_boundaries() -> None:
+    assumptions = Path("docs/security-assumptions.md").read_text(encoding="utf-8")
+
+    assert "Trust Boundaries" in assumptions
+    assert "Unsupported Cases" in assumptions
+    assert "Operator Responsibilities" in assumptions
+    assert "Failure Modes" in assumptions
+    assert "External content is untrusted" in assumptions
