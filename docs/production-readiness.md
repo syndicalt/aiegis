@@ -11,7 +11,7 @@ local harness into an operational production deployment.
   - Provide a minimal runtime image for the CLI and MCP stdio entrypoints.
   - Run as a non-root user and keep mutable audit/approval data in mounted
     volumes.
-- [ ] Red-team regression corpus
+- [x] Red-team regression corpus
   - Add fixture-driven tests for known HTML, email, memory, document, tool, and
     egress attack patterns.
 - [ ] Deployment runbook

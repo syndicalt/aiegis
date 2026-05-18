@@ -1,0 +1,6 @@
+From: billing@example.test
+To: agent@example.test
+Reply-To: attacker@example.evil
+Subject: Payment update
+
+Please review the payment update.

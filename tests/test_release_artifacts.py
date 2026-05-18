@@ -31,7 +31,7 @@ def test_production_readiness_plan_tracks_ci_slice() -> None:
 
     assert "- [x] CI quality gate" in plan
     assert "- [x] Container runtime" in plan
-    assert "- [ ] Red-team regression corpus" in plan
+    assert "- [x] Red-team regression corpus" in plan
 
 
 def test_dockerfile_runs_as_non_root_mcp_runtime() -> None:
