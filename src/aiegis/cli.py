@@ -17,6 +17,7 @@ from aiegis.jsonl_audit_sink import JsonlAuditSink
 from aiegis.mcp_proxy import McpProxyConfig
 from aiegis.mcp_server import McpServerConfig, run_stdio_server
 from aiegis.mcp_stdio_proxy import SubprocessMcpBackend, run_stdio_proxy
+from aiegis.memory_guard import inspect_memory
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, DecisionStatus, Policy, evaluate_policy
 from aiegis.policy_profiles import LoadedPolicyProfile, load_policy_profile
@@ -37,6 +38,9 @@ def main() -> int:
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
     elif args.command == "inspect-email":
         content = inspect_email(_read_input(args.path), max_input_chars=args.max_input_chars)
+        _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
+    elif args.command == "inspect-memory":
+        content = inspect_memory(_read_input(args.path), max_input_chars=args.max_input_chars)
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
     elif args.command == "inspect-output":
         inspection = inspect_output(_read_input(args.path), policy=_egress_policy_from_args(args))
@@ -74,6 +78,19 @@ def _build_parser() -> argparse.ArgumentParser:
     inspect_email_parser.add_argument("--action", default="summarize", help="Proposed action name.")
     inspect_email_parser.add_argument("--target", default="local", help="Proposed action target.")
     _add_policy_arguments(inspect_email_parser)
+
+    inspect_memory_parser = subcommands.add_parser(
+        "inspect-memory",
+        help="Inspect untrusted persisted memory text.",
+    )
+    inspect_memory_parser.add_argument(
+        "path", nargs="?", help="Memory text file path. Reads stdin when omitted."
+    )
+    inspect_memory_parser.add_argument(
+        "--action", default="memory_retrieve", help="Proposed action name."
+    )
+    inspect_memory_parser.add_argument("--target", default="local", help="Proposed action target.")
+    _add_policy_arguments(inspect_memory_parser)
 
     inspect_output_parser = subcommands.add_parser(
         "inspect-output",

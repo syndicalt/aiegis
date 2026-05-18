@@ -8,14 +8,7 @@ from bs4 import BeautifulSoup, Tag
 
 from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS, apply_input_limit
 from aiegis.models import Finding, FindingSeverity, GuardedContent, SourceType, TrustLevel
-
-_PROMPT_INJECTION_PATTERNS = (
-    re.compile(r"\bignore\s+(all\s+)?previous\s+instructions\b", re.IGNORECASE),
-    re.compile(r"\bsystem\s+prompt\b", re.IGNORECASE),
-    re.compile(r"\breveal\s+(credentials|secrets|api\s+keys?)\b", re.IGNORECASE),
-    re.compile(r"\bemail\s+secrets\b", re.IGNORECASE),
-    re.compile(r"\bsend\s+your\s+api\s+key\b", re.IGNORECASE),
-)
+from aiegis.prompt_signals import prompt_injection_findings
 
 _BLOCK_TAGS = {"address", "article", "aside", "blockquote", "div", "footer", "h1", "h2", "h3"}
 _BLOCK_TAGS.update({"h4", "h5", "h6", "header", "li", "main", "nav", "ol", "p", "section", "ul"})
@@ -51,11 +44,11 @@ def inspect_html(
                         evidence=_hidden_evidence(tag),
                     )
                 )
-                findings.extend(_prompt_findings(text))
+                findings.extend(prompt_injection_findings(text))
             tag.decompose()
 
     visible_text = _visible_text(soup)
-    findings.extend(_prompt_findings(visible_text))
+    findings.extend(prompt_injection_findings(visible_text))
 
     return GuardedContent(
         text=visible_text,
@@ -97,7 +90,7 @@ def _add_metadata(text: str, findings: list[Finding], quarantined: list[str]) ->
             evidence=normalized,
         )
     )
-    findings.extend(_prompt_findings(normalized))
+    findings.extend(prompt_injection_findings(normalized))
 
 
 def _quarantine_active_content(
@@ -189,27 +182,6 @@ def _hidden_evidence(tag: Tag) -> str:
         return "aria-hidden=true"
     style = tag.get("style")
     return style if isinstance(style, str) else tag.name or "hidden"
-
-
-def _prompt_findings(text: str) -> list[Finding]:
-    matches = _matching_prompt_patterns(text)
-    return [
-        Finding(
-            code="prompt_injection_phrase",
-            severity=FindingSeverity.HIGH,
-            message="Prompt-like instruction was found in untrusted content.",
-            evidence=match,
-        )
-        for match in matches
-    ]
-
-
-def _matching_prompt_patterns(text: str) -> tuple[str, ...]:
-    for pattern in _PROMPT_INJECTION_PATTERNS:
-        match = pattern.search(text)
-        if match:
-            return (match.group(0),)
-    return ()
 
 
 def _visible_text(soup: BeautifulSoup) -> str:

@@ -16,6 +16,7 @@ class SourceType(Enum):
     PLAIN_TEXT = "plain_text"
     HTML = "html"
     EMAIL = "email"
+    MEMORY = "memory"
     PDF = "pdf"
     MCP = "mcp"
 

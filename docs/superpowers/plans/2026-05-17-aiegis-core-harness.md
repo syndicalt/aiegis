@@ -683,3 +683,42 @@ Observed: `3 passed`.
 Run: `pytest tests/test_cli.py -k mcp_proxy_stdio`
 
 Observed: `2 passed`.
+
+### Task 23: Memory Poisoning Scanner
+
+**Files:**
+- Create: `tests/test_memory_guard.py`
+- Create: `src/aiegis/prompt_signals.py`
+- Create: `src/aiegis/memory_guard.py`
+- Modify: `src/aiegis/models.py`
+- Modify: `src/aiegis/html_guard.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `tests/test_mcp_server.py`
+- Modify: `src/aiegis/mcp_server.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover safe memory inspection, prompt-like instructions, persistent memory
+poisoning instructions, exfiltration-oriented memory content, truncation,
+`inspect-memory` CLI behavior, and `aiegis.inspect_memory` MCP behavior.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_memory_guard.py tests/test_cli.py -k inspect_memory tests/test_mcp_server.py -k inspect_memory`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.memory_guard'`.
+
+- [x] **Step 3: Implement memory scanner**
+
+Implemented `inspect_memory`, centralized prompt-injection phrase detection in
+`prompt_signals`, added `SourceType.MEMORY`, wired `inspect-memory` into the
+CLI, and exposed `aiegis.inspect_memory` through the MCP server.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_memory_guard.py tests/test_cli.py -k inspect_memory tests/test_mcp_server.py -k inspect_memory`
+
+Observed: `7 passed`.

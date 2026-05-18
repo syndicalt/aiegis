@@ -14,6 +14,7 @@ from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
 from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS
 from aiegis.jsonl_audit_sink import JsonlAuditSink
+from aiegis.memory_guard import inspect_memory
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, DecisionStatus, Policy, evaluate_policy
 from aiegis.tool_firewall import (
@@ -180,6 +181,14 @@ def _tool_definitions() -> list[dict[str, object]]:
             "inputSchema": _INSPECTION_INPUT_SCHEMA,
         },
         {
+            "name": "aiegis.inspect_memory",
+            "description": (
+                "Inspect untrusted persisted memory text and return findings "
+                "and a policy decision."
+            ),
+            "inputSchema": _INSPECTION_INPUT_SCHEMA,
+        },
+        {
             "name": "aiegis.evaluate_tool_call",
             "description": (
                 "Evaluate a proposed agent tool invocation before execution and return "
@@ -223,6 +232,8 @@ def _call_tool(params: object, *, config: McpServerConfig) -> dict[str, object]:
         guarded = inspect_html(content, max_input_chars=config.max_input_chars)
     elif name == "aiegis.inspect_email":
         guarded = inspect_email(content, max_input_chars=config.max_input_chars)
+    elif name == "aiegis.inspect_memory":
+        guarded = inspect_memory(content, max_input_chars=config.max_input_chars)
     else:
         raise ValueError(f"Unknown tool: {name}")
 
