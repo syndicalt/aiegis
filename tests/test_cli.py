@@ -104,6 +104,52 @@ profiles:
     assert output["decision"]["status"] == "require_approval"
 
 
+def test_inspect_html_appends_eventloom_audit(capsys, monkeypatch, tmp_path) -> None:
+    calls: list[dict[str, object]] = []
+
+    class FakeSink:
+        def append(self, record, *, log_path, thread, policy_profile) -> None:
+            calls.append(
+                {
+                    "event_id": record.event_id,
+                    "log_path": log_path,
+                    "thread": thread,
+                    "policy_profile": policy_profile,
+                }
+            )
+
+    def fake_sink_factory() -> FakeSink:
+        return FakeSink()
+
+    monkeypatch.setattr("aiegis.cli.EventloomSink", fake_sink_factory)
+    eventloom_path = tmp_path / "aiegis.jsonl"
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "inspect-html",
+            "--eventloom-log",
+            str(eventloom_path),
+            "--eventloom-thread",
+            "aiegis-security",
+        ],
+    )
+    monkeypatch.setattr("sys.stdin", _TextInput("<p>Visible</p>"))
+
+    exit_code = main()
+
+    assert exit_code == 0
+    output = json.loads(capsys.readouterr().out)
+    assert calls == [
+        {
+            "event_id": output["event_id"],
+            "log_path": eventloom_path,
+            "thread": "aiegis-security",
+            "policy_profile": "default",
+        }
+    ]
+
+
 def test_inspect_html_reads_file_path(capsys, monkeypatch, tmp_path) -> None:
     html_path = tmp_path / "input.html"
     html_path.write_text("<p>File body</p>", encoding="utf-8")

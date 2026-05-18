@@ -7,6 +7,7 @@ from uuid import uuid4
 
 from aiegis.audit import AuditRecord
 from aiegis.email_guard import inspect_email
+from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, Policy, evaluate_policy
@@ -24,12 +25,12 @@ def main() -> int:
 
     if args.command == "inspect-html":
         content = inspect_html(_read_input(args.path))
-        _print_inspection(content, args.action, args.target, _policy_from_args(args))
+        _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
         return 0
 
     if args.command == "inspect-email":
         content = inspect_email(_read_input(args.path))
-        _print_inspection(content, args.action, args.target, _policy_from_args(args))
+        _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
         return 0
 
     parser.print_help(sys.stderr)
@@ -60,6 +61,15 @@ def _build_parser() -> argparse.ArgumentParser:
 def _add_policy_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument("--policy-file", help="YAML policy profile file.")
     parser.add_argument("--policy-profile", default="default", help="Policy profile name.")
+    parser.add_argument(
+        "--eventloom-log",
+        help="Append metadata audit event to a Zaxy Eventloom log.",
+    )
+    parser.add_argument(
+        "--eventloom-thread",
+        default="default",
+        help="Eventloom thread/session ID.",
+    )
 
 
 def _policy_from_args(args: argparse.Namespace) -> Policy:
@@ -68,13 +78,26 @@ def _policy_from_args(args: argparse.Namespace) -> Policy:
     return load_policy_profile(Path(args.policy_file), args.policy_profile)
 
 
-def _print_inspection(content: GuardedContent, action: str, target: str, policy: Policy) -> None:
+def _print_inspection(
+    content: GuardedContent,
+    action: str,
+    target: str,
+    policy: Policy,
+    args: argparse.Namespace,
+) -> None:
     decision = evaluate_policy(
         content,
         ActionRequest(name=action, target=target),
         policy,
     )
     record = AuditRecord(event_id=f"evt_{uuid4().hex}", content=content, decision=decision)
+    if args.eventloom_log is not None:
+        EventloomSink().append(
+            record,
+            log_path=Path(args.eventloom_log),
+            thread=args.eventloom_thread,
+            policy_profile=args.policy_profile,
+        )
     print(record.to_json())
 
 

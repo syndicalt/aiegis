@@ -197,3 +197,35 @@ Implemented strict YAML loading with `PyYAML`, profile validation, and CLI polic
 Run: `pytest tests/test_policy_profiles.py tests/test_cli.py -q`
 
 Observed: `10 passed`.
+
+### Task 9: Zaxy Eventloom Audit Sink
+
+**Files:**
+- Create: `tests/test_eventloom_sink.py`
+- Create: `src/aiegis/eventloom_sink.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover metadata-only Eventloom payload construction, optional Zaxy dependency
+failure, EventLog append arguments, and CLI wiring through `--eventloom-log` and
+`--eventloom-thread`.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_eventloom_sink.py tests/test_cli.py -q`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.eventloom_sink'`.
+
+- [x] **Step 3: Implement minimal sink and CLI flags**
+
+Implemented `EventloomSink`, metadata-first payload building, optional import of
+`zaxy.event.EventLog`, and CLI append support.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_eventloom_sink.py tests/test_cli.py -q`
+
+Observed: `10 passed`.

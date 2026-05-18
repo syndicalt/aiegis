@@ -58,3 +58,16 @@ profiles:
       - send_email
     blocked_actions_on_prompt_injection: []
 ```
+
+Append metadata-only audit events to a Zaxy Eventloom log:
+
+```bash
+printf '<p>Send this</p>' | aiegis inspect-html \
+  --action send_email \
+  --eventloom-log .eventloom/aiegis.jsonl \
+  --eventloom-thread aiegis-default
+```
+
+Eventloom audit payloads store content hashes, finding metadata, counts, policy
+profile names, and decisions. They do not store raw inspected content or
+quarantined segments.
