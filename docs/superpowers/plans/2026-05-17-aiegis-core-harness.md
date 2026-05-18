@@ -1,6 +1,6 @@
 # AIegis Core Harness Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** Build the first tested AIegis package: trust-labeled content ingestion, HTML/email threat detection, policy decisions, audit records, and CLI inspection entrypoints.
 
@@ -17,11 +17,11 @@
 - Create: `README.md`
 - Create: `src/aiegis/__init__.py`
 
-- [ ] **Step 1: Add package and tool configuration**
+- [x] **Step 1: Add package and tool configuration**
 
 Create `pyproject.toml` with project metadata, dependencies, coverage gate, Ruff, and mypy settings.
 
-- [ ] **Step 2: Add initial README**
+- [x] **Step 2: Add initial README**
 
 Document the boundary AIegis protects, the current MVP scope, and the required verification commands.
 
@@ -31,19 +31,19 @@ Document the boundary AIegis protects, the current MVP scope, and the required v
 - Create: `tests/test_models.py`
 - Create: `src/aiegis/models.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Tests cover immutable findings, guarded content serialization, trust labels, and risk aggregation.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `pytest tests/test_models.py -q`
 
-- [ ] **Step 3: Implement minimal model code**
+- [x] **Step 3: Implement minimal model code**
 
 Implement the dataclasses and enums needed by the tests.
 
-- [ ] **Step 4: Run tests and verify pass**
+- [x] **Step 4: Run tests and verify pass**
 
 Run: `pytest tests/test_models.py -q`
 
@@ -53,19 +53,19 @@ Run: `pytest tests/test_models.py -q`
 - Create: `tests/test_html_guard.py`
 - Create: `src/aiegis/html_guard.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Tests cover script removal, visible text extraction, hidden text quarantine, prompt-injection phrase detection, metadata quarantine, and safe link extraction.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `pytest tests/test_html_guard.py -q`
 
-- [ ] **Step 3: Implement minimal HTML guard**
+- [x] **Step 3: Implement minimal HTML guard**
 
 Use BeautifulSoup/html5lib, deterministic style checks, and explicit findings.
 
-- [ ] **Step 4: Run tests and verify pass**
+- [x] **Step 4: Run tests and verify pass**
 
 Run: `pytest tests/test_html_guard.py -q`
 
@@ -77,19 +77,19 @@ Run: `pytest tests/test_html_guard.py -q`
 - Create: `src/aiegis/policy.py`
 - Create: `src/aiegis/audit.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Tests cover allowed decisions, quarantine decisions, approval-required tool actions, blocked exfiltration attempts, and stable audit JSON.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `pytest tests/test_policy.py tests/test_audit.py -q`
 
-- [ ] **Step 3: Implement minimal policy and audit modules**
+- [x] **Step 3: Implement minimal policy and audit modules**
 
 Implement deterministic policy evaluation without model calls or external services.
 
-- [ ] **Step 4: Run tests and verify pass**
+- [x] **Step 4: Run tests and verify pass**
 
 Run: `pytest tests/test_policy.py tests/test_audit.py -q`
 
@@ -99,19 +99,19 @@ Run: `pytest tests/test_policy.py tests/test_audit.py -q`
 - Create: `tests/test_cli.py`
 - Create: `src/aiegis/cli.py`
 
-- [ ] **Step 1: Write failing tests**
+- [x] **Step 1: Write failing tests**
 
 Tests cover inspecting HTML from stdin and returning JSON with text, findings, quarantine state, and policy decision.
 
-- [ ] **Step 2: Run tests and verify failure**
+- [x] **Step 2: Run tests and verify failure**
 
 Run: `pytest tests/test_cli.py -q`
 
-- [ ] **Step 3: Implement minimal CLI**
+- [x] **Step 3: Implement minimal CLI**
 
 Implement `aiegis inspect-html` with stdin/file input and JSON output.
 
-- [ ] **Step 4: Run tests and verify pass**
+- [x] **Step 4: Run tests and verify pass**
 
 Run: `pytest tests/test_cli.py -q`
 
@@ -120,17 +120,17 @@ Run: `pytest tests/test_cli.py -q`
 **Files:**
 - Modify: none unless verification exposes defects.
 
-- [ ] **Step 1: Run full suite**
+- [x] **Step 1: Run full suite**
 
 Run: `pytest --cov=aiegis --cov-report=term-missing --cov-fail-under=90`
 
-- [ ] **Step 2: Run lint and type checks**
+- [x] **Step 2: Run lint and type checks**
 
 Run: `ruff check .`
 
 Run: `mypy src`
 
-- [ ] **Step 3: Fix only verified defects**
+- [x] **Step 3: Fix only verified defects**
 
 Any fix must be covered by a failing test first unless it is purely configuration or formatting.
 
