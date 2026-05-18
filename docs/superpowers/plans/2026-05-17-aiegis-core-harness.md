@@ -868,3 +868,35 @@ binaries during tests.
 Run: `pytest tests/test_browser_sandbox.py`
 
 Observed: `4 passed`.
+
+### Task 28: Configured PDF Extractor Hook
+
+**Files:**
+- Modify: `tests/test_document_guard.py`
+- Modify: `src/aiegis/document_guard.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover successful PDF text extraction through an injected parser and
+quarantine behavior when the configured parser fails.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_document_guard.py -k pdf`
+
+Observed: failed because `inspect_document` did not accept
+`pdf_text_extractor`.
+
+- [x] **Step 3: Implement configured PDF extractor hook**
+
+Added `PdfTextExtractor` protocol support to `inspect_document`, reused input
+limit and prompt-signal scanning for extracted PDF text, and quarantined parser
+failures as `document_parse_error`.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_document_guard.py -k pdf`
+
+Observed: `3 passed`.

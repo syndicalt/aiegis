@@ -56,8 +56,10 @@ aiegis inspect-document report.txt --media-type text/plain
 ```
 
 Text-like attachments are decoded as UTF-8 and inspected for prompt-like
-instructions. PDFs, binary payloads, and unsupported document types are
-quarantined rather than parsed with ad hoc logic.
+instructions. PDFs are quarantined unless callers provide a configured PDF text
+extractor to `inspect_document`; parser failures are quarantined. Binary
+payloads and unsupported document types are quarantined rather than parsed with
+ad hoc logic.
 
 ## Browser Render Isolation
 

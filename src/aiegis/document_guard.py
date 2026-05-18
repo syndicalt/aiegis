@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import PurePath
+from typing import Protocol
 
 from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS, apply_input_limit
 from aiegis.models import Finding, FindingSeverity, GuardedContent, SourceType, TrustLevel
@@ -21,14 +22,27 @@ _TEXT_EXTENSIONS = frozenset(
 )
 
 
+class PdfTextExtractor(Protocol):
+    def __call__(self, data: bytes) -> str: ...
+
+
 def inspect_document(
     data: bytes,
     *,
     filename: str | None = None,
     media_type: str | None = None,
     max_input_chars: int | None = DEFAULT_MAX_INPUT_CHARS,
+    pdf_text_extractor: PdfTextExtractor | None = None,
 ) -> GuardedContent:
     if _is_pdf(data, filename=filename, media_type=media_type):
+        if pdf_text_extractor is not None:
+            return _inspect_pdf_with_extractor(
+                data,
+                filename=filename,
+                media_type=media_type,
+                max_input_chars=max_input_chars,
+                pdf_text_extractor=pdf_text_extractor,
+            )
         return _quarantined_document(
             source_type=SourceType.PDF,
             filename=filename,
@@ -78,12 +92,53 @@ def inspect_document(
             ),
         )
 
+    return _guarded_text_document(
+        text,
+        source_type=SourceType.DOCUMENT,
+        max_input_chars=max_input_chars,
+    )
+
+
+def _inspect_pdf_with_extractor(
+    data: bytes,
+    *,
+    filename: str | None,
+    media_type: str | None,
+    max_input_chars: int | None,
+    pdf_text_extractor: PdfTextExtractor,
+) -> GuardedContent:
+    try:
+        text = pdf_text_extractor(data)
+    except Exception:
+        return _quarantined_document(
+            source_type=SourceType.PDF,
+            filename=filename,
+            finding=Finding(
+                code="document_parse_error",
+                severity=FindingSeverity.HIGH,
+                message="Configured PDF parser failed to extract text.",
+                evidence=_document_evidence(filename=filename, media_type=media_type),
+            ),
+        )
+    return _guarded_text_document(
+        text,
+        source_type=SourceType.PDF,
+        max_input_chars=max_input_chars,
+    )
+
+
+def _guarded_text_document(
+    text: str,
+    *,
+    source_type: SourceType,
+    max_input_chars: int | None,
+) -> GuardedContent:
     limited_text, limit_findings = apply_input_limit(text, max_input_chars=max_input_chars)
     findings = list(limit_findings)
     findings.extend(prompt_injection_findings(limited_text))
     return GuardedContent(
         text=limited_text,
-        source_type=SourceType.DOCUMENT,
+        source_type=source_type,
         trust_level=TrustLevel.UNTRUSTED,
         findings=tuple(findings),
     )
