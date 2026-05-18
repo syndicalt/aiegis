@@ -641,3 +641,45 @@ post-backend egress inspection with redacted blocked responses.
 Run: `pytest tests/test_mcp_proxy.py`
 
 Observed: `5 passed`.
+
+### Task 22: MCP Stdio Proxy Transport
+
+**Files:**
+- Create: `tests/test_mcp_stdio_proxy.py`
+- Create: `src/aiegis/mcp_stdio_proxy.py`
+- Modify: `tests/test_cli.py`
+- Modify: `src/aiegis/cli.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover JSON-RPC line exchange with a subprocess backend, stdio proxy
+response filtering through the MCP proxy core, parse-error responses, CLI
+backend command wiring, and CLI policy-profile propagation.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_mcp_stdio_proxy.py`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.mcp_stdio_proxy'`.
+
+Run: `pytest tests/test_cli.py -k mcp_proxy_stdio`
+
+Observed: failed because `aiegis.cli.SubprocessMcpBackend` did not exist.
+
+- [x] **Step 3: Implement stdio proxy transport**
+
+Implemented `SubprocessMcpBackend`, `run_stdio_proxy`, the `mcp-proxy-stdio`
+CLI command, and profile propagation into `McpProxyConfig` and local guard-tool
+`McpServerConfig`.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_stdio_proxy.py`
+
+Observed: `3 passed`.
+
+Run: `pytest tests/test_cli.py -k mcp_proxy_stdio`
+
+Observed: `2 passed`.

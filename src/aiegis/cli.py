@@ -14,7 +14,9 @@ from aiegis.eventloom_sink import EventloomSink
 from aiegis.html_guard import inspect_html
 from aiegis.input_limits import DEFAULT_MAX_INPUT_CHARS
 from aiegis.jsonl_audit_sink import JsonlAuditSink
+from aiegis.mcp_proxy import McpProxyConfig
 from aiegis.mcp_server import McpServerConfig, run_stdio_server
+from aiegis.mcp_stdio_proxy import SubprocessMcpBackend, run_stdio_proxy
 from aiegis.models import GuardedContent
 from aiegis.policy import ActionRequest, DecisionStatus, Policy, evaluate_policy
 from aiegis.policy_profiles import LoadedPolicyProfile, load_policy_profile
@@ -28,33 +30,31 @@ _DEFAULT_POLICY = Policy(
 def main() -> int:
     parser = _build_parser()
     args = parser.parse_args()
+    exit_code = 0
 
     if args.command == "inspect-html":
         content = inspect_html(_read_input(args.path), max_input_chars=args.max_input_chars)
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
-        return 0
-
-    if args.command == "inspect-email":
+    elif args.command == "inspect-email":
         content = inspect_email(_read_input(args.path), max_input_chars=args.max_input_chars)
         _print_inspection(content, args.action, args.target, _policy_from_args(args), args)
-        return 0
-
-    if args.command == "inspect-output":
+    elif args.command == "inspect-output":
         inspection = inspect_output(_read_input(args.path), policy=_egress_policy_from_args(args))
         print(json.dumps(inspection.to_dict(), sort_keys=True))
-        return 0 if inspection.status is DecisionStatus.ALLOW else 1
-
-    if args.command == "mcp-stdio":
+        exit_code = 0 if inspection.status is DecisionStatus.ALLOW else 1
+    elif args.command == "mcp-stdio":
         run_stdio_server(config=_mcp_config_from_args(args))
-        return 0
-
-    if args.command == "verify-audit-log":
+    elif args.command == "mcp-proxy-stdio":
+        with SubprocessMcpBackend(args.backend_command) as backend:
+            run_stdio_proxy(config=_mcp_proxy_config_from_args(args, backend=backend))
+    elif args.command == "verify-audit-log":
         verification = verify_audit_log(Path(args.path))
         print(json.dumps(verification.to_dict(), sort_keys=True))
-        return 0 if verification.valid else 1
-
-    parser.print_help(sys.stderr)
-    return 2
+        exit_code = 0 if verification.valid else 1
+    else:
+        parser.print_help(sys.stderr)
+        exit_code = 2
+    return exit_code
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -88,6 +88,17 @@ def _build_parser() -> argparse.ArgumentParser:
         "mcp-stdio", help="Run the AIegis MCP server over stdio."
     )
     _add_policy_arguments(mcp_stdio_parser)
+
+    mcp_proxy_stdio_parser = subcommands.add_parser(
+        "mcp-proxy-stdio",
+        help="Run an AIegis MCP stdio proxy in front of a backend MCP command.",
+    )
+    _add_policy_arguments(mcp_proxy_stdio_parser)
+    mcp_proxy_stdio_parser.add_argument(
+        "backend_command",
+        nargs="+",
+        help="Backend MCP command and arguments, passed without a shell.",
+    )
 
     verify_audit_log_parser = subcommands.add_parser(
         "verify-audit-log",
@@ -164,6 +175,13 @@ def _print_inspection(
 
 def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
     loaded_profile = _loaded_profile_from_args(args)
+    return _mcp_config_from_loaded_profile(args, loaded_profile)
+
+
+def _mcp_config_from_loaded_profile(
+    args: argparse.Namespace,
+    loaded_profile: LoadedPolicyProfile,
+) -> McpServerConfig:
     return McpServerConfig(
         policy=loaded_profile.content_policy,
         tool_call_policy=loaded_profile.tool_call_policy,
@@ -180,10 +198,10 @@ def _mcp_config_from_args(args: argparse.Namespace) -> McpServerConfig:
 def _loaded_profile_from_args(args: argparse.Namespace) -> LoadedPolicyProfile:
     if args.policy_file is None:
         return LoadedPolicyProfile(
-        content_policy=_DEFAULT_POLICY,
-        tool_call_policy=McpServerConfig().tool_call_policy,
-        egress_policy=McpServerConfig().egress_policy,
-    )
+            content_policy=_DEFAULT_POLICY,
+            tool_call_policy=McpServerConfig().tool_call_policy,
+            egress_policy=McpServerConfig().egress_policy,
+        )
     return load_policy_profile(
         Path(args.policy_file),
         args.policy_profile,
@@ -193,6 +211,20 @@ def _loaded_profile_from_args(args: argparse.Namespace) -> LoadedPolicyProfile:
 
 def _egress_policy_from_args(args: argparse.Namespace) -> EgressPolicy:
     return _loaded_profile_from_args(args).egress_policy
+
+
+def _mcp_proxy_config_from_args(
+    args: argparse.Namespace,
+    *,
+    backend: SubprocessMcpBackend,
+) -> McpProxyConfig:
+    loaded_profile = _loaded_profile_from_args(args)
+    return McpProxyConfig(
+        backend=backend,
+        tool_call_policy=loaded_profile.tool_call_policy,
+        egress_policy=loaded_profile.egress_policy,
+        guard_config=_mcp_config_from_loaded_profile(args, loaded_profile),
+    )
 
 
 def _read_input(path: str | None) -> str:

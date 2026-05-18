@@ -494,6 +494,99 @@ def test_mcp_stdio_command_passes_raw_audit_opt_in(capsys, monkeypatch, tmp_path
     assert capsys.readouterr().out == ""
 
 
+def test_mcp_proxy_stdio_command_runs_backend_proxy(capsys, monkeypatch) -> None:
+    calls: list[object] = []
+
+    class FakeBackend:
+        def __init__(self, command) -> None:
+            self.command = tuple(command)
+            self.entered = False
+
+        def __enter__(self):
+            self.entered = True
+            calls.append({"backend_command": self.command, "entered": self.entered})
+            return self
+
+        def __exit__(self, exc_type, exc, traceback) -> None:
+            calls.append({"closed": True})
+
+    def fake_run_stdio_proxy(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.SubprocessMcpBackend", FakeBackend)
+    monkeypatch.setattr("aiegis.cli.run_stdio_proxy", fake_run_stdio_proxy)
+    monkeypatch.setattr(
+        "sys.argv",
+        ["aiegis", "mcp-proxy-stdio", "python", "backend.py"],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert calls[0] == {"backend_command": ("python", "backend.py"), "entered": True}
+    assert calls[1].backend.command == ("python", "backend.py")
+    assert calls[2] == {"closed": True}
+    assert capsys.readouterr().out == ""
+
+
+def test_mcp_proxy_stdio_command_passes_policy_profile(capsys, monkeypatch, tmp_path) -> None:
+    policy_path = tmp_path / "policies.yaml"
+    policy_path.write_text(
+        """
+profiles:
+  strict:
+    approval_required_actions: []
+    blocked_actions_on_prompt_injection: []
+    approval_required_tools: []
+    blocked_tools:
+      - browser.open
+    sensitive_argument_keys: []
+    blocked_egress_patterns:
+      - github_token
+""",
+        encoding="utf-8",
+    )
+    calls: list[object] = []
+
+    class FakeBackend:
+        def __init__(self, command) -> None:
+            self.command = tuple(command)
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, exc_type, exc, traceback) -> None:
+            return None
+
+    def fake_run_stdio_proxy(*, config) -> None:
+        calls.append(config)
+
+    monkeypatch.setattr("aiegis.cli.SubprocessMcpBackend", FakeBackend)
+    monkeypatch.setattr("aiegis.cli.run_stdio_proxy", fake_run_stdio_proxy)
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "aiegis",
+            "mcp-proxy-stdio",
+            "--policy-file",
+            str(policy_path),
+            "--policy-profile",
+            "strict",
+            "python",
+            "backend.py",
+        ],
+    )
+
+    exit_code = main()
+
+    assert exit_code == 0
+    assert len(calls) == 1
+    assert calls[0].tool_call_policy.blocked_tools == ("browser.open",)
+    assert calls[0].egress_policy.blocked_patterns == ("github_token",)
+    assert calls[0].guard_config.policy_profile == "strict"
+    assert capsys.readouterr().out == ""
+
+
 def test_verify_audit_log_command_returns_valid_summary(capsys, monkeypatch, tmp_path) -> None:
     audit_path = tmp_path / "audit.jsonl"
     decision = evaluate_tool_call(
