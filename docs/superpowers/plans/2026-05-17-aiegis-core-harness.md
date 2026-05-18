@@ -609,3 +609,35 @@ tool-call evaluation, and exposed the evaluator through MCP as
 Run: `pytest tests/test_mcp_server.py tests/test_tool_firewall.py -q`
 
 Observed: `15 passed`.
+
+### Task 21: MCP Backend Proxy Core
+
+**Files:**
+- Create: `tests/test_mcp_proxy.py`
+- Create: `src/aiegis/mcp_proxy.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover backend `tools/list` forwarding, blocked backend `tools/call`
+requests, allowed backend tool forwarding, outbound secret-like backend response
+blocking, and local handling of `aiegis.*` guard tools without forwarding.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_mcp_proxy.py`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.mcp_proxy'`.
+
+- [x] **Step 3: Implement MCP proxy core**
+
+Implemented `McpProxyConfig`, the backend protocol, JSON-RPC proxy handling,
+pre-forward tool firewall evaluation, local AIegis guard tool delegation, and
+post-backend egress inspection with redacted blocked responses.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_mcp_proxy.py`
+
+Observed: `5 passed`.

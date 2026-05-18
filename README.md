@@ -12,6 +12,7 @@ The first build slice provides:
 - audit-ready JSON records
 - a small CLI for inspecting HTML and email input
 - an MCP stdio server exposing guarded inspection tools to agents
+- an in-process MCP proxy core for wrapping backend tool calls
 
 The project standard is production code only: no throwaway hacks, no speculative
 abstractions, and every behavioral change starts with a failing test. The test suite
@@ -177,3 +178,14 @@ with redacted text for outbound responses.
 When `--audit-log` is configured for the MCP server, minimized content
 inspection records and redacted tool firewall decisions are appended to the
 local JSONL audit log.
+
+## MCP Proxy Core
+
+`aiegis.mcp_proxy` provides an in-process gateway primitive for wrapping backend
+MCP servers. It forwards ordinary backend JSON-RPC messages, handles AIegis
+guard tools locally, evaluates backend `tools/call` requests with the tool
+firewall before forwarding, and inspects backend text responses with the egress
+guard before returning them to the agent.
+
+The current proxy core is transport-neutral. Stdio/SSE/HTTP process bridging can
+be layered on top of this module without changing the policy or egress logic.
