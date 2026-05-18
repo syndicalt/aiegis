@@ -835,3 +835,36 @@ Observed: `3 passed`.
 Run: `pytest tests/test_cli.py -k approval_log`
 
 Observed: `1 passed`.
+
+### Task 27: Browser Render Sandbox Command Plan
+
+**Files:**
+- Create: `tests/test_browser_sandbox.py`
+- Create: `src/aiegis/browser_sandbox.py`
+- Modify: `README.md`
+- Modify: `docs/superpowers/plans/2026-05-17-aiegis-core-harness.md`
+
+- [x] **Step 1: Write failing tests**
+
+Tests cover required sandbox wrapper configuration, ephemeral browser profile
+and cache paths, network-disabled-by-default command construction, explicit
+network opt-in, and rejection of remote render input URLs.
+
+- [x] **Step 2: Run tests and verify failure**
+
+Run: `pytest tests/test_browser_sandbox.py`
+
+Observed: failed with `ModuleNotFoundError: No module named 'aiegis.browser_sandbox'`.
+
+- [x] **Step 3: Implement render sandbox command builder**
+
+Implemented `BrowserRenderPolicy`, `BrowserRenderRequest`,
+`BrowserRenderCommand`, and `build_render_command` for constructing sandboxed
+headless-browser command arguments without launching environment-specific
+binaries during tests.
+
+- [x] **Step 4: Run focused tests and verify pass**
+
+Run: `pytest tests/test_browser_sandbox.py`
+
+Observed: `4 passed`.

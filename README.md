@@ -59,6 +59,15 @@ Text-like attachments are decoded as UTF-8 and inspected for prompt-like
 instructions. PDFs, binary payloads, and unsupported document types are
 quarantined rather than parsed with ad hoc logic.
 
+## Browser Render Isolation
+
+`aiegis.browser_sandbox` builds a sandboxed headless-browser command for
+rendering local HTML with an ephemeral profile and cache. A sandbox wrapper
+command is required, network backgrounding is disabled by default, and remote
+input URLs are rejected. The module constructs the command plan; callers remain
+responsible for choosing and installing the actual sandbox and browser binaries
+for their environment.
+
 Inspect outbound text before returning or sending it:
 
 ```bash
